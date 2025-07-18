@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: auth-service
+
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    test-rollback-on-update: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/healthcare_db
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8081
+
+keycloak:
+  realm: mths
+  server-url: http://localhost:9082
+  client-id: mths-id
+  client-secret: t8N0iOarLmeUa1QcIL3o3HvTAfgJztmE
