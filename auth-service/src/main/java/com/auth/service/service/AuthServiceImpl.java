@@ -45,78 +45,76 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void createUser(NewUserRecord newUserRecord) {
-        UserRepresentation userRepresentation = new UserRepresentation();
-        userRepresentation.setEnabled(true);
-        userRepresentation.setFirstName(newUserRecord.firstName());
-        userRepresentation.setLastName(newUserRecord.lastName());
-        userRepresentation.setEmail(newUserRecord.email());
-        userRepresentation.setUsername(newUserRecord.username());
-        userRepresentation.setEmailVerified(false);
+        // 1. Create user representation with ALL attributes upfront
+        UserRepresentation user = new UserRepresentation();
+        user.setEnabled(true);
+        user.setUsername(newUserRecord.username());
+        user.setEmail(newUserRecord.email());
+        user.setFirstName(newUserRecord.firstName());
+        user.setLastName(newUserRecord.lastName());
+        user.setEmailVerified(false);
 
-        CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
-        credentialRepresentation.setValue(newUserRecord.password());
-        credentialRepresentation.setType(CredentialRepresentation.PASSWORD);
+        // Set password
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(newUserRecord.password());
+        credential.setTemporary(false);
+        user.setCredentials(List.of(credential));
 
-        userRepresentation.setCredentials(List.of(credentialRepresentation));
-
-        UsersResource userResource = getUsersResource();
-        Response response = userResource.create(userRepresentation);
-        log.info("Keycloak user creation response status: {}", response.getStatus());
-
-        if (!Objects.equals(201, response.getStatus())) {
-            handleKeycloakCreationError(response);
-        }
-
-        // Extract userId
-        String locationHeader = response.getLocation().getPath();
-        String userId = extractUserId(locationHeader);
-
-        // Add custom attributes: RoleType and ApprovalStatus
-        UserResource createdUser = userResource.get(userId);
-        UserRepresentation userWithAttrs = createdUser.toRepresentation();
-
+        // 2. Set attributes in INITIAL creation (not separate update)
         Map<String, List<String>> attributes = new HashMap<>();
-
-        // Convert Set<UserType> to List<String> for attributes
-        List<String> roleTypeNames = newUserRecord.userTypes().stream()
+        attributes.put("roleType", newUserRecord.userTypes().stream()
                 .map(UserType::name)
-                .toList();
-
-        attributes.put("roleType", roleTypeNames);
+                .toList());
         attributes.put("approvalStatus", List.of(ApprovalStatus.PENDING.name()));
+        user.setAttributes(attributes);
 
-        userWithAttrs.setAttributes(attributes);
-        createdUser.update(userWithAttrs);
+        // 3. Create user with DEBUGGING
+        UsersResource usersResource = getUsersResource();
+        log.debug("Attempting to create user with attributes: {}", attributes);
 
-        // Save verification code
-        String code = StringUtils.generateVerificationCode();
-        verificationService.saveVerificationCode(userId, code);
+        try (Response response = usersResource.create(user)) {
+            if (response.getStatus() != 201) {
+                log.error("Creation failed. Status: {}, Headers: {}",
+                        response.getStatus(), response.getHeaders());
+                handleKeycloakCreationError(response);
+                return;
+            }
 
-        // Send email with code
-        emailService.sendVerificationCode(newUserRecord.email(), code);
-        log.info("New User created with ID: {}. Verification code sent to: {}", userId, newUserRecord.email());
+            String userId = extractUserId(response.getLocation().getPath());
+            log.info("User created with ID: {}", userId);
+
+            // 4. VERIFY attributes were stored
+            UserResource createdUser = usersResource.get(userId);
+            UserRepresentation createdRep = createdUser.toRepresentation();
+            Map<String, List<String>> storedAttrs = createdRep.getAttributes();
+
+            log.debug("Stored attributes after creation: {}", storedAttrs);
+
+            if (storedAttrs == null || !storedAttrs.containsKey("approvalStatus")) {
+                // 5. FALLBACK: Try updating attributes again if missing
+                log.warn("Attributes not persisted, attempting update...");
+                createdRep.setAttributes(attributes);
+                createdUser.update(createdRep);
+
+                // Verify again
+                storedAttrs = usersResource.get(userId).toRepresentation().getAttributes();
+                log.debug("Attributes after fallback update: {}", storedAttrs);
+            }
+
+            // 6. DATABASE DEBUGGING (if you have direct DB access)
+            log.debug("Check database with: SELECT * FROM user_attribute WHERE user_id = '{}'", userId);
+
+            // 7. Proceed with verification code
+            String code = StringUtils.generateVerificationCode();
+            verificationService.saveVerificationCode(userId, code);
+            emailService.sendVerificationCode(newUserRecord.email(), code);
+
+        } catch (Exception e) {
+            log.error("User creation failed completely", e);
+            throw new BadRequestException("User creation failed", "USER_CREATION_ERROR");
+        }
     }
-
-//
-//    @Override
-//    public TokenResponse login(String username, String password) {
-//        String tokenUrl =  properties.getServerUrl()+"/realms/"+properties.getRealm()+"/protocol/openid-connect/token";
-//
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-//
-//        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-//        form.add("grant_type", "password");
-//        form.add("client_id", properties.getClientId());
-//        form.add("client_secret", properties.getClientSecret());
-//        form.add("username", username);
-//        form.add("password", password);
-//
-//        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
-//
-//        ResponseEntity<TokenResponse> response = restTemplate.postForEntity(tokenUrl, request, TokenResponse.class);
-//        return response.getBody();
-//    }
 
 
     private UserRepresentation getUserByUsername(String username) {
