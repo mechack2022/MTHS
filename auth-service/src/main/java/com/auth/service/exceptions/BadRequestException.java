@@ -1,6 +1,6 @@
 package com.auth.service.exceptions;
 
-public class BadRequestException extends RuntimeException {
+public class BadRequestException extends BusinessException {
     private final String field;
     private final String message;
 

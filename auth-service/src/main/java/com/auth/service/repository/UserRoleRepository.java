@@ -6,3 +6,4 @@ package com.auth.service.repository;//package com.digi_dokita.repository;
 //public interface UserRoleRepository extends JpaRepository<UserRole, String> {
 //
 //}
+

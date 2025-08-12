@@ -12,13 +12,12 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PasswordReset {
+public class PasswordReset extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // or AUTO
-    private Long id;
+    @Column(name="uuid", nullable = false, unique = true)
+    private String uuid;
 
-    private String userId;
+    private String userUuid;
 
     private String resetToken;
 
@@ -27,6 +26,4 @@ public class PasswordReset {
 
     private boolean used;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }

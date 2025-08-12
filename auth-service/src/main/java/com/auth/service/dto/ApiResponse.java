@@ -1,58 +1,4 @@
 package com.auth.service.dto;
-//import com.fasterxml.jackson.annotation.JsonInclude;
-//import lombok.*;
-//
-//import java.time.LocalDateTime;
-//
-//
-//@NoArgsConstructor
-//@JsonInclude(JsonInclude.Include.NON_NULL)
-//@Builder
-//@Getter
-//@Setter
-//@AllArgsConstructor
-//public class ApiResponse<T> {
-//
-//    private boolean success;
-//    private String message;
-//    private T data;
-//    private LocalDateTime timestamp = LocalDateTime.now();
-//    private String error;
-//
-//    public static <T> ApiResponse<T> success(T data) {
-//        return new ApiResponse<>(true, "Success", data, null);
-//    }
-//
-//    public static <T> ApiResponse<T> success(T data, String message) {
-//        return new ApiResponse<>(true, message, data,  null);
-//    }
-//
-//    public static <T> ApiResponse<T> success(String message, T data) {
-//        return new ApiResponse<>(true, message, data, null);
-//    }
-//
-//    public static <T> ApiResponse<T> error(String message) {
-//        return new ApiResponse<>(false, message, null, message);
-//    }
-//
-//    public static <T> ApiResponse<T> error(String message, String detailedError) {
-//        return new ApiResponse<>(false, message, null, detailedError);
-//    }
-//
-//    public static <T> ApiResponse<T> error(String message, String detailedError, T data) {
-//        return new ApiResponse<>(false, message, data, detailedError);
-//    }
-//
-//    // Internal constructor
-//    private ApiResponse(boolean success, String message, T data, String error) {
-//        this.success = success;
-//        this.message = message;
-//        this.data = data;
-//        this.error = error;
-//        this.timestamp = LocalDateTime.now();
-//    }
-//
-//}
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -94,6 +40,16 @@ public class ApiResponse<T> {
                 .message(message)
                 .data(data)
                 .statusCode(200)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    public static <T> ApiResponse<T> success(String message, T data, int statusCode) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .statusCode(statusCode)
                 .timestamp(LocalDateTime.now())
                 .build();
     }

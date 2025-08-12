@@ -16,13 +16,12 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VerificationCode {
+public class VerificationCode extends BaseEntity{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // or AUTO
-    private Long id;
+    @Column(name="uuid", nullable = false, unique = true)
+    private String uuid;
 
-    private String userId;
+    private String userUuid;
 
     @Enumerated(EnumType.STRING)
     private Medium medium;
@@ -39,9 +38,9 @@ public class VerificationCode {
 
     private boolean used;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+//    @Column(name = "created_at")
+//    private LocalDateTime createdAt;
+//
+//    @Column(name = "updated_at")
+//    private LocalDateTime updatedAt;
 }

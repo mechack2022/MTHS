@@ -30,37 +30,38 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     @Transactional
-    public void saveVerificationCode(String userId, String code, CodeType type) {
+    public void saveVerificationCode(String userUuid, String code, CodeType type) {
         // Invalidate any existing unused codes for this user and type
-        invalidateExistingCodes(userId, type);
+        invalidateExistingCodes(userUuid, type);
 
         VerificationCode verificationCode = VerificationCode.builder()
-                .userId(userId)
+                .userUuid(userUuid)
                 .medium(Medium.EMAIL)
                 .target("email")
                 .code(code)
                 .type(type)
                 .expiresAt(LocalDateTime.now().plusMinutes(getExpirationMinutes(type)))
                 .used(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+
+//                .createdAt(LocalDateTime.now())
+//                .updatedAt(LocalDateTime.now())
                 .build();
 
         verificationCodeRepository.save(verificationCode);
         log.info("Verification code saved for userId: {} with type: {} and expiry: {}",
-                userId, type, verificationCode.getExpiresAt());
+                userUuid, type, verificationCode.getExpiresAt());
     }
 
     @Override
     @Transactional
-    public VerificationResult validateVerificationCode(String userId, String inputCode, CodeType type) {
-        log.info("Validating verification code for userId: {}, type: {}", userId, type);
+    public VerificationResult validateVerificationCode(String userUuid, String inputCode, CodeType type) {
+        log.info("Validating verification code for userUuid: {}, type: {}", userUuid, type);
 
         Optional<VerificationCode> verificationCodeOpt = verificationCodeRepository
-                .findByUserIdAndTypeAndUsedFalse(userId, type);
+                .findByUserUuidAndTypeAndUsedFalse(userUuid, type);
 
         if (verificationCodeOpt.isEmpty()) {
-            log.warn("No active verification code found for userId: {}, type: {}", userId, type);
+            log.warn("No active verification code found for userUuid: {}, type: {}", userUuid, type);
             return VerificationResult.CODE_NOT_FOUND;
         }
 
@@ -68,13 +69,13 @@ public class VerificationServiceImpl implements VerificationService {
 
         // Check if code has expired
         if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
-            log.warn("Verification code expired for userId: {}. Expired at: {}", userId, verificationCode.getExpiresAt());
+            log.warn("Verification code expired for userUuid: {}. Expired at: {}", userUuid, verificationCode.getExpiresAt());
             return VerificationResult.CODE_EXPIRED;
         }
 
         // Check if code matches
         if (!verificationCode.getCode().equals(inputCode)) {
-            log.warn("Invalid verification code provided for userId: {}", userId);
+            log.warn("Invalid verification code provided for userUuid: {}", userUuid);
             return VerificationResult.INVALID_CODE;
         }
 
@@ -83,20 +84,20 @@ public class VerificationServiceImpl implements VerificationService {
         verificationCode.setUpdatedAt(LocalDateTime.now());
         verificationCodeRepository.save(verificationCode);
 
-        log.info("Verification code successfully validated for userId: {}", userId);
+        log.info("Verification code successfully validated for userUuid: {}", userUuid);
         return VerificationResult.SUCCESS;
     }
 
     @Override
     @Deprecated
-    public boolean isValidVerificationCode(String userId, String inputCode, CodeType type) {
+    public boolean isValidVerificationCode(String userUuid, String inputCode, CodeType type) {
         // Keep for backward compatibility
-        return validateVerificationCode(userId, inputCode, type) == VerificationResult.SUCCESS;
+        return validateVerificationCode(userUuid, inputCode, type) == VerificationResult.SUCCESS;
     }
 
     @Override
-    public void validateAndThrowIfInvalid(String userId, String inputCode, CodeType type) {
-        VerificationResult result = validateVerificationCode(userId, inputCode, type);
+    public void validateAndThrowIfInvalid(String userUuid, String inputCode, CodeType type) {
+        VerificationResult result = validateVerificationCode(userUuid, inputCode, type);
 
         switch (result) {
             case SUCCESS:
@@ -135,54 +136,54 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Override
-    public boolean hasValidCode(String userId, CodeType type) {
-        return verificationCodeRepository.findByUserIdAndTypeAndUsedFalse(userId, type)
+    public boolean hasValidCode(String userUuid, CodeType type) {
+        return verificationCodeRepository.findByUserUuidAndTypeAndUsedFalse(userUuid, type)
                 .filter(vc -> vc.getExpiresAt().isAfter(LocalDateTime.now()))
                 .isPresent();
     }
 
     @Override
     @Transactional
-    public void invalidateExistingCodes(String userId, CodeType type) {
-        verificationCodeRepository.findAllByUserIdAndTypeAndUsedFalse(userId, type)
+    public void invalidateExistingCodes(String userUuid, CodeType type) {
+        verificationCodeRepository.findAllByUserUuidAndTypeAndUsedFalse(userUuid, type)
                 .forEach(code -> {
                     code.setUsed(true);
                     code.setUpdatedAt(LocalDateTime.now());
                     verificationCodeRepository.save(code);
                 });
-        log.info("Invalidated existing verification codes for userId: {}, type: {}", userId, type);
+        log.info("Invalidated existing verification codes for userUuid: {}, type: {}", userUuid, type);
     }
 
     @Override
     @Transactional
-    public void invalidateCode(String userId, String code, CodeType type) {
+    public void invalidateCode(String userUuid, String code, CodeType type) {
         // This method is for invalidating a specific code (used after password reset success)
-        verificationCodeRepository.findByUserIdAndTypeAndUsedFalse(userId, type)
+        verificationCodeRepository.findByUserUuidAndTypeAndUsedFalse(userUuid, type)
                 .filter(vc -> vc.getCode().equals(code))
                 .ifPresent(verificationCode -> {
                     verificationCode.setUsed(true);
                     verificationCode.setUpdatedAt(LocalDateTime.now());
                     verificationCodeRepository.save(verificationCode);
-                    log.info("Invalidated specific verification code for userId: {}, type: {}", userId, type);
+                    log.info("Invalidated specific verification code for userUuid: {}, type: {}", userUuid, type);
                 });
     }
 
     @Override
-    public Optional<VerificationCode> getActiveVerificationCode(String userId, CodeType type) {
-        return verificationCodeRepository.findByUserIdAndTypeAndUsedFalse(userId, type)
+    public Optional<VerificationCode> getActiveVerificationCode(String userUuid, CodeType type) {
+        return verificationCodeRepository.findByUserUuidAndTypeAndUsedFalse(userUuid, type)
                 .filter(vc -> vc.getExpiresAt().isAfter(LocalDateTime.now()));
     }
 
     @Override
     @Transactional
-    public void resendVerificationCode(String userId, String newCode, CodeType type) {
+    public void resendVerificationCode(String userUuid, String newCode, CodeType type) {
         // Invalidate existing codes
-        invalidateExistingCodes(userId, type);
+        invalidateExistingCodes(userUuid, type);
 
         // Save new code with the specified type
-        saveVerificationCode(userId, newCode, type);
+        saveVerificationCode(userUuid, newCode, type);
 
-        log.info("Verification code resent for userId: {}, type: {}", userId, type);
+        log.info("Verification code resent for userUuid: {}, type: {}", userUuid, type);
     }
 
     private int getExpirationMinutes(CodeType type) {

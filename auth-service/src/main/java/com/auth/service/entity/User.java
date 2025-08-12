@@ -1,27 +1,23 @@
 package com.auth.service.entity;
 
-
-import com.auth.service.constants.ApprovalStatus;
-import com.auth.service.constants.RoleType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@Setter
-@Getter
-@Builder
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User extends BaseEntity {
 
-    @Id
-    @Column(name = "id", nullable = false)
-    private String id;
+    @Column(name="uuid", nullable = false, unique = true)
+    private String uuid;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -29,39 +25,60 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "firstName", nullable = false)
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "lasttName", nullable = false)
+    @Column(name = "last_name")
     private String lastName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "account_type")
-    private RoleType roleType;
-
-//    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-//    private UserProfile userProfile;
-//
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<UserRole> roles = new ArrayList<>();
-
-    @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<VerificationCode> verificationCodes = new ArrayList<>();
-
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<AuthenticationToken> authenticationTokens = new ArrayList<>();
 
     @Column(name = "mail_verified", nullable = false)
     private Boolean mailVerified = false;
 
+    @Column(name = "account_type")
     @Enumerated(EnumType.STRING)
-    @Column(name = "approval_status")
-    private ApprovalStatus approvalStatus;
+    private AccountType accountType;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "acccount_verified", nullable = false)
+    private Boolean accountVerified = false;
 
+    // Many-to-Many relationship with Role
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+
+    // Helper methods for managing roles
+    public void addRole(Role role) {
+        roles.add(role);
+        role.getUsers().add(this);
+    }
+
+    public void removeRole(Role role) {
+        roles.remove(role);
+        role.getUsers().remove(this);
+    }
+
+    // Get all permissions from all roles
+    public Set<Permission> getAllPermissions() {
+        Set<Permission> allPermissions = new HashSet<>();
+        for (Role role : roles) {
+            allPermissions.addAll(role.getPermissions());
+        }
+        return allPermissions;
+    }
+
+    public enum AccountType {
+        DOCTOR,
+        PATIENT,
+        ADMIN,
+        PHARMACY,
+        HOSPITAL,
+        INSURANCE
+    }
 }

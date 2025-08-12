@@ -3,9 +3,13 @@ package com.auth.service.service;
 
 import com.auth.service.dto.NewUserRecord;
 import com.auth.service.dto.TokenResponse;
+import com.auth.service.dto.UserDTO;
+import com.auth.service.entity.User;
 
 public interface AuthService {
     void createUser(NewUserRecord newUserRecord);
+
+    User createUser(UserDTO req);
 
     TokenResponse login(String username, String password);
 

@@ -4,6 +4,7 @@ package com.auth.service.controller;
 import com.auth.service.dto.*;
 import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.service.AuthService;
+import com.auth.service.service.UserAuthService;
 import com.auth.service.service.VerificationService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -19,40 +20,19 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final UserAuthService authService;
     private final VerificationService verificationService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody NewUserRecord newUserRecord) {
-        try {
-            log.info("Received user registration request for email: {}", newUserRecord.email());
-
+    public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody UserDTO newUserRecord) {
+            log.info("Received user registration request for email: {}", newUserRecord.getEmail());
             authService.createUser(newUserRecord);
-
             ApiResponse<String> response = ApiResponse.success(
                     "User registered successfully. Please check your email for verification code.",
-                    "Registration completed"
+                    newUserRecord.getEmail()
+                    ,HttpStatus.CREATED.value()
             );
-
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (BadRequestException e) {
-            log.warn("User registration failed: {}", e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error during user registration", e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Registration failed due to an internal error. Please try again later.",
-                    "INTERNAL_SERVER_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
     }
 
 

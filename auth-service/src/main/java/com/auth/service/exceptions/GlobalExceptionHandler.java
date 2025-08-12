@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.servlet.NoHandlerFoundException;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -178,23 +178,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.METHOD_NOT_ALLOWED);
     }
 
-    // Handle no handler found (404)
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNoHandlerFoundException(
-            NoHandlerFoundException ex) {
-
-        log.error("No handler found: {}", ex.getMessage());
-
-        String error = "No endpoint found for " + ex.getHttpMethod() + " " + ex.getRequestURL();
-
-        ApiResponse<Object> response = ApiResponse.error(
-                "Endpoint not found",
-                error,
-                HttpStatus.NOT_FOUND.value()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-    }
 
     // Handle illegal argument exception
     @ExceptionHandler(IllegalArgumentException.class)

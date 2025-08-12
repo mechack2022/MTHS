@@ -18,25 +18,25 @@ public interface VerificationCodeRepository extends JpaRepository<VerificationCo
     @Modifying
     @Transactional
     @Query("UPDATE VerificationCode vc SET vc.used = true, vc.updatedAt = CURRENT_TIMESTAMP " +
-            "WHERE vc.userId = :userId AND vc.used = false AND vc.expiresAt > CURRENT_TIMESTAMP")
-    void markAllUnusedAsExpiredForUserId(@Param("userId") Long userId);
+            "WHERE vc.userUuid = :userId AND vc.used = false AND vc.expiresAt > CURRENT_TIMESTAMP")
+    void markAllUnusedAsExpiredForUserUuid(@Param("userId") Long userId);
 
-    Optional<VerificationCode> findByUserIdAndTypeAndUsedFalse(String userId, CodeType type);
+    Optional<VerificationCode> findByUserUuidAndTypeAndUsedFalse(String userId, CodeType type);
 
-    List<VerificationCode> findAllByUserIdAndTypeAndUsedFalse(String userId, CodeType type);
+    List<VerificationCode> findAllByUserUuidAndTypeAndUsedFalse(String userId, CodeType type);
 
-    @Query("SELECT vc FROM VerificationCode vc WHERE vc.userId = :userId " +
+    @Query("SELECT vc FROM VerificationCode vc WHERE vc.userUuid = :userId " +
             "AND vc.type = :type AND vc.used = false AND vc.expiresAt > :now")
     Optional<VerificationCode> findActiveAndNonExpiredCode(
             @Param("userId") String userId,
             @Param("type") CodeType type,
             @Param("now") LocalDateTime now
     );
-    List<VerificationCode> findAllByUserId(String userId);
+    List<VerificationCode> findAllByUserUuid(String userId);
 
     @Query("DELETE FROM VerificationCode vc WHERE vc.expiresAt < :expiryTime")
     void deleteExpiredCodes(@Param("expiryTime") LocalDateTime expiryTime);
 
-    long countByUserIdAndTypeAndUsedFalse(String userId, CodeType type);
+    long countByUserUuidAndTypeAndUsedFalse(String userId, CodeType type);
 }
 
