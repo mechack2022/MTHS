@@ -1,6 +1,7 @@
 package com.auth.service.controller;
 
 
+import com.auth.service.constants.VerificationResult;
 import com.auth.service.dto.*;
 import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.service.AuthService;
@@ -46,70 +47,25 @@ public class AuthController {
      * Verify user email with verification code
      */
     @PutMapping("/verify-email")
-    public ResponseEntity<ApiResponse<String>> verifyEmail(@Valid @RequestBody VerificationRequestDTO request) {
-        try {
-            log.info("Received email verification request for userId: {}", request.getUserId());
-
-            authService.verifyEmailWithCode(request.getUserId(), request.getCode());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "Email verified successfully. You can now log in to your account."
+    public ResponseEntity<ApiResponse<VerificationResult>> verifyEmail(@Valid @RequestBody VerificationRequestDTO request) {
+           VerificationResult res = authService.verifyEmailWithCode(request.getUserId(), request.getCode());
+            ApiResponse<VerificationResult> response = ApiResponse.success(
+                    "Email verified successfully",
+                    res,
+                    HttpStatus.OK.value()
             );
-
             return ResponseEntity.ok(response);
-
-        } catch (BadRequestException e) {
-            log.warn("Email verification failed for userId: {} - {}", request.getUserId(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error during email verification for userId: {}", request.getUserId(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Email verification failed due to an internal error. Please try again later.",
-                    "VERIFICATION_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
     }
 
-    /**
-     * Resend verification code to user's email
-     */
     @PostMapping("/resend-verification-code")
     public ResponseEntity<ApiResponse<String>> resendVerificationCode(@Valid @RequestBody ResendCodeRequest request) {
-        try {
-            log.info("Received resend verification code request for userId: {}", request.email());
-
-            authService.resendVerificationCode(request.email());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "Verification code sent successfully. Please check your email."
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException e) {
-            log.warn("Failed to resend verification code for userId: {} - {}", request.email(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error while resending verification code for userId: {}", request.email(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Failed to resend verification code due to an internal error. Please try again later.",
-                    "RESEND_FAILED",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+       String res = authService.resendVerificationCode(request.email());
+        ApiResponse<String> response = ApiResponse.success(
+                res,
+                request.email(),
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
     }
 
 

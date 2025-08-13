@@ -1,5 +1,6 @@
 package com.auth.service.service;
 
+import com.auth.service.constants.VerificationResult;
 import com.auth.service.dto.TokenResponse;
 import com.auth.service.dto.UserDTO;
 import com.auth.service.entity.User;
@@ -12,11 +13,11 @@ public interface UserAuthService {
 
     void logout(String refreshToken);
 
-    void verifyEmailWithCode(String userUuid, String code);
+    VerificationResult verifyEmailWithCode(String userUuid, String code);
 
     void resendVerificationCode(String userUuid, String email);
 
-    void resendVerificationCode(String email);
+    String resendVerificationCode(String email);
 
     void initiatePasswordReset(String email);
 

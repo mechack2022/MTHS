@@ -1,5 +1,44 @@
+#
+#version: '3'
+#services:
+#  postgres:
+#    image: postgres:latest
+#    restart: always
+#    volumes:
+#      - ./pgdata:/var/lib/postgresql/data
+#    environment:
+#      POSTGRES_DB: ${POSTGRES_DB}
+#      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#    ports:
+#      - "5433:5432"
+#    networks:
+#      - local
+#
+#  keycloak:
+#    image: quay.io/keycloak/keycloak:25.0.0
+#    command: start-dev
+#    restart: always
+#    depends_on:
+#      - postgres
+#      - mailhog
+#    ports:
+#      - "9082:8080"
+#    environment:
+#      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+#      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+#      KC_DB: postgres
+#      KC_DB_SCHEMA: public
+#      KC_DB_USERNAME: ${KC_DB_USERNAME}
+#      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+#      KC_DB_URL: ${KC_DB_URL}
+#      KC_HOSTNAME: localhost
+#      KC_FEATURES: token-exchange,admin-fine-grained-authz
+#    networks:
+#      - local
 
-version: '3'
+version: '3.8'
+
 services:
   postgres:
     image: postgres:latest
@@ -7,32 +46,24 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: healthcare_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mechack200
     ports:
       - "5433:5432"
     networks:
       - local
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:25.0.0
-    command: start-dev
+  mailhog:
+    image: mailhog/mailhog:latest
     restart: always
-    depends_on:
-      - postgres
-      - mailhog
     ports:
-      - "9082:8080"
-    environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_DB: postgres
-      KC_DB_SCHEMA: public
-      KC_DB_USERNAME: ${KC_DB_USERNAME}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      KC_DB_URL: ${KC_DB_URL}
-      KC_HOSTNAME: localhost
-      KC_FEATURES: token-exchange,admin-fine-grained-authz
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
     networks:
       - local
+
+networks:
+  local:
+    driver: bridge
+

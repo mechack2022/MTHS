@@ -119,7 +119,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     public UserDTO createUser(UserDTO req) {
         // Check if user already exists
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new ResourceNotFoundException("User", "email", req.getEmail());
+            throw new BadRequestException("email", req.getEmail() + " has been taken");
         }
 
         // Create new user
@@ -198,9 +198,6 @@ public class UserAuthServiceImpl implements UserAuthService {
         try {
             // Validate the refresh token
             if (jwtTokenProvider.validateToken(refreshToken) && jwtTokenProvider.isRefreshToken(refreshToken)) {
-                // In a production system, you might want to add the token to a blacklist
-                // or store refresh tokens in a database and mark them as revoked
-                // For now, we'll just validate that the token is valid before logout
                 String username = jwtTokenProvider.getUsername(refreshToken);
                 Optional<User> userOpt = userRepository.findByEmail(username);
 
@@ -208,37 +205,31 @@ public class UserAuthServiceImpl implements UserAuthService {
                     User user = userOpt.get();
                     user.setUpdatedAt(LocalDateTime.now());
                     userRepository.save(user);
-
                     // Log the logout event if needed
                     // logService.logLogout(user.getId());
                 }
             }
         } catch (Exception e) {
-            // Fail silently for logout - even if token is invalid, consider logout successful
-            // Log the error for debugging purposes
             System.err.println("Error during logout: " + e.getMessage());
         }
     }
 
     @Override
-    public void verifyEmailWithCode(String userId, String code) {
+    public VerificationResult verifyEmailWithCode(String userId, String code) {
         User user = findUserByUuid(userId);
 
         if (user.getMailVerified()) {
             throw new BadRequestException(user.getEmail(), "Email is already verified");
         }
         // Use your existing verification service to validate the code
-        try {
-            verificationService.validateAndThrowIfInvalid(userId, code, CodeType.EMAIL_VERIFICATION);
-        } catch (Exception e) {
-            throw new BadRequestException("email", "Email Verification failed");
-        }
-
+        VerificationResult verificationResult = verificationService.validateAndThrowIfInvalid(userId, code, CodeType.EMAIL_VERIFICATION);
         // Mark email as verified
         user.setMailVerified(true);
-        user.setAccountVerified(true);
+//        user.setAccountVerified(true);
         user.setUpdatedAt(LocalDateTime.now());
+        // assigns user role and permission for this mail verification
         userRepository.save(user);
+        return verificationResult;
     }
 
     @Override
@@ -256,7 +247,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
-    public void resendVerificationCode(String email) {
+    public String resendVerificationCode(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("User", "User with email ", email);
@@ -267,6 +258,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         }
 
         sendNewVerificationCode(user);
+        return "Email verification resend token resend";
     }
 
     @Override
