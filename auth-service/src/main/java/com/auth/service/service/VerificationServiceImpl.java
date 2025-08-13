@@ -9,11 +9,14 @@ import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.repository.VerificationCodeRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -21,6 +24,7 @@ import java.util.Optional;
 public class VerificationServiceImpl implements VerificationService {
 
     private final VerificationCodeRepository verificationCodeRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -35,6 +39,7 @@ public class VerificationServiceImpl implements VerificationService {
         invalidateExistingCodes(userUuid, type);
 
         VerificationCode verificationCode = VerificationCode.builder()
+                .uuid(UUID.randomUUID().toString())
                 .userUuid(userUuid)
                 .medium(Medium.EMAIL)
                 .target("email")
@@ -74,7 +79,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         // Check if code matches
-        if (!verificationCode.getCode().equals(inputCode)) {
+        if ( !passwordEncoder.matches(inputCode, verificationCode.getCode())) {
             log.warn("Invalid verification code provided for userUuid: {}", userUuid);
             return VerificationResult.INVALID_CODE;
         }
@@ -96,12 +101,12 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Override
-    public void validateAndThrowIfInvalid(String userUuid, String inputCode, CodeType type) {
+    public VerificationResult validateAndThrowIfInvalid(String userUuid, String inputCode, CodeType type) {
         VerificationResult result = validateVerificationCode(userUuid, inputCode, type);
 
         switch (result) {
             case SUCCESS:
-                return; // Valid code, proceed
+                return result; // Valid code, proceed
 
             case CODE_NOT_FOUND:
                 throw new BadRequestException(

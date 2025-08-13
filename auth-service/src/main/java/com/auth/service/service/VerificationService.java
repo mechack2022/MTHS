@@ -22,7 +22,7 @@ public interface VerificationService {
      */
     VerificationResult validateVerificationCode(String userId, String inputCode, CodeType type);
 
-    void validateAndThrowIfInvalid(String userId, String inputCode, CodeType type);
+    VerificationResult validateAndThrowIfInvalid(String userId, String inputCode, CodeType type);
 
 
     /**
