@@ -14,23 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class UserDTO {
-//    private String uuid;
-//    private String email;
-//    private String firstName;
-//    private String lastName;
-//    private Boolean mailVerified;
-//    private String accountType;
-//    private Boolean isActive;
-//    private Boolean accountVerified;
-//    private LocalDateTime verificationCodeExpiry;
-//    private LocalDateTime passwordResetCodeExpiry;
-//    private Set<String> roles;
-//    private Set<String> permissions;
-//    private LocalDateTime createdAt;
-//    private LocalDateTime updatedAt;
-
     private String uuid;
-
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
