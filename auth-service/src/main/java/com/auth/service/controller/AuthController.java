@@ -4,7 +4,6 @@ package com.auth.service.controller;
 import com.auth.service.constants.VerificationResult;
 import com.auth.service.dto.*;
 import com.auth.service.exceptions.BadRequestException;
-import com.auth.service.service.AuthService;
 import com.auth.service.service.UserAuthService;
 import com.auth.service.service.VerificationService;
 import jakarta.validation.Valid;

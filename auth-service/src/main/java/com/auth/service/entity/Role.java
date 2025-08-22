@@ -69,6 +69,7 @@ public class Role extends BaseEntity {
         INSURANCE_AGENT,
         SUPPORT_STAFF,
         MANAGER,
-        USER
+        USER,
+        PENDING
     }
 }

@@ -319,7 +319,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         // Assign role based on account type
         switch (user.getAccountType()) {
             case DOCTOR:
-                defaultRoleName = Role.RoleName.DOCTOR;
+                defaultRoleName = Role.RoleName.PENDING;
                 break;
             case ADMIN:
                 defaultRoleName = Role.RoleName.ADMIN;
@@ -335,7 +335,7 @@ public class UserAuthServiceImpl implements UserAuthService {
                 break;
             case PATIENT:
             default:
-                defaultRoleName = Role.RoleName.PATIENT;
+                defaultRoleName = Role.RoleName.PENDING;
                 break;
         }
 

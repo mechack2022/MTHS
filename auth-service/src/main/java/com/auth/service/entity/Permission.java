@@ -154,6 +154,10 @@ public class Permission extends BaseEntity {
 
         // Audit
         AUDIT_LOG_READ,
-        AUDIT_LOG_EXPORT
+        AUDIT_LOG_EXPORT,
+
+        PROFILE_UPLOAD,
+        BIODATA_FILL,
+        ACCOUNT_REQUEST_VERIFICATION
     }
 }
