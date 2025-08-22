@@ -1,5 +1,6 @@
 package com.auth.service.entity;
 
+//import com.auth.service.entity.doctor.Doctor;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -52,6 +53,14 @@ public class User extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+
+//    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+//    @JoinTable(
+//            name = "user_doctor",
+//            joinColumns = @JoinColumn(name = "user_id"),
+//            inverseJoinColumns = @JoinColumn(name = "doctor_id")
+//    )
+//    private Set<Doctor> doctors = new HashSet<>();
 
     // Helper methods for managing roles
     public void addRole(Role role) {

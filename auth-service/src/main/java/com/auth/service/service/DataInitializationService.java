@@ -106,6 +106,13 @@ public class DataInitializationService implements CommandLineRunner {
                 Permission.PermissionName.MEDICAL_RECORD_READ
         ));
 
+        assignPermissionsToRole(Role.RoleName.PENDING, Arrays.asList(
+                Permission.PermissionName.PROFILE_UPLOAD,
+                Permission.PermissionName.BIODATA_FILL,
+                Permission.PermissionName.ACCOUNT_REQUEST_VERIFICATION
+        ));
+
+
         // Hospital Admin permissions
         assignPermissionsToRole(Role.RoleName.HOSPITAL_ADMIN, Arrays.asList(
                 Permission.PermissionName.HOSPITAL_READ, Permission.PermissionName.HOSPITAL_UPDATE,

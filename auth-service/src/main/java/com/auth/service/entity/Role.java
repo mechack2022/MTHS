@@ -1,38 +1,6 @@
 package com.auth.service.entity;//package com.digi_dokita.entity;
-//import com.digi_dokita.constants.RoleName;
-//import jakarta.persistence.Entity;
-//import jakarta.persistence.Table;
-//import lombok.Builder;
-//import lombok.Getter;
-//import lombok.Setter;
-//import jakarta.persistence.*;
-//import lombok.*;
-//
-//import java.time.LocalDateTime;
-//
-//@Entity
-//@Table(name = "roles")
-//@Setter
-//@Getter
-//@Builder
-//@NoArgsConstructor
-//@AllArgsConstructor
-//public class Role {
-//
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY) // or AUTO
-//    private Long id;
-//
-//    @Enumerated(EnumType.STRING)
-//    @Column(unique = true, nullable = false)
-//    private RoleName roleName;
-//
-//    private String description;
-//
-//    @Column(name = "created_at")
-//    private LocalDateTime createdAt;
-//}
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.HashSet;
@@ -46,9 +14,6 @@ import java.util.Set;
 @AllArgsConstructor
 @ToString(exclude = {"users", "permissions"})
 public class Role extends BaseEntity {
-
-//    @Column(name="uuid", nullable = false, unique = true)
-//    private String uuid;
 
     @Column(name = "role_name", unique = true, nullable = false)
     @Enumerated(EnumType.STRING)
@@ -104,6 +69,7 @@ public class Role extends BaseEntity {
         INSURANCE_AGENT,
         SUPPORT_STAFF,
         MANAGER,
-        USER
+        USER,
+        PENDING
     }
 }

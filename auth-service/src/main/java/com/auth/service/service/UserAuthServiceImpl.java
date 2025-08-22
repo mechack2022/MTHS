@@ -1,62 +1,5 @@
 package com.auth.service.service;
 
-//import com.auth.service.dto.TokenResponse;
-//import com.auth.service.dto.UserDTO;
-//import com.auth.service.entity.User;
-//
-//public class UserAuthServiceImp implements UserAuthService {
-//    @Override
-//    public User createUser(UserDTO req) {
-//        return null;
-//    }
-//
-//    @Override
-//    public TokenResponse login(String username, String password) {
-//        return null;
-//    }
-//
-//    @Override
-//    public void verifyEmailWithCode(String userId, String code) {
-//
-//    }
-//
-//    @Override
-//    public void resendVerificationCode(String userId, String email) {
-//
-//    }
-//
-//    @Override
-//    public void resendVerificationCode(String email) {
-//
-//    }
-//
-//    @Override
-//    public void initiatePasswordReset(String email) {
-//
-//    }
-//
-//    @Override
-//    public void verifyResetPasswordCode(String email, String code) {
-//
-//    }
-//
-//    @Override
-//    public void resendPasswordResetCode(String email) {
-//
-//    }
-//
-//    @Override
-//    public void resetPassword(String userId, String newPassword, String confirmPassword) {
-//
-//    }
-//
-//    @Override
-//    public void markEmailAsVerified(String userId) {
-//
-//    }
-//}
-
-
 import com.auth.service.dto.TokenResponse;
 import com.auth.service.dto.UserDTO;
 import com.auth.service.entity.User;
@@ -376,7 +319,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         // Assign role based on account type
         switch (user.getAccountType()) {
             case DOCTOR:
-                defaultRoleName = Role.RoleName.DOCTOR;
+                defaultRoleName = Role.RoleName.PENDING;
                 break;
             case ADMIN:
                 defaultRoleName = Role.RoleName.ADMIN;
@@ -392,7 +335,7 @@ public class UserAuthServiceImpl implements UserAuthService {
                 break;
             case PATIENT:
             default:
-                defaultRoleName = Role.RoleName.PATIENT;
+                defaultRoleName = Role.RoleName.PENDING;
                 break;
         }
 
