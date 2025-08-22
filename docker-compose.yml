@@ -1,5 +1,5 @@
+#version: '3.8'
 #
-#version: '3'
 #services:
 #  postgres:
 #    image: postgres:latest
@@ -7,37 +7,72 @@
 #    volumes:
 #      - ./pgdata:/var/lib/postgresql/data
 #    environment:
-#      POSTGRES_DB: ${POSTGRES_DB}
-#      POSTGRES_USER: ${POSTGRES_USER}
-#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#      POSTGRES_DB: healthcare_db
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: mechack200
 #    ports:
 #      - "5433:5432"
 #    networks:
 #      - local
 #
-#  keycloak:
-#    image: quay.io/keycloak/keycloak:25.0.0
-#    command: start-dev
+#  mailhog:
+#    image: mailhog/mailhog:latest
 #    restart: always
-#    depends_on:
-#      - postgres
-#      - mailhog
 #    ports:
-#      - "9082:8080"
-#    environment:
-#      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-#      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-#      KC_DB: postgres
-#      KC_DB_SCHEMA: public
-#      KC_DB_USERNAME: ${KC_DB_USERNAME}
-#      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-#      KC_DB_URL: ${KC_DB_URL}
-#      KC_HOSTNAME: localhost
-#      KC_FEATURES: token-exchange,admin-fine-grained-authz
+#      - "8025:8025"  # Web UI
+#      - "1025:1025"  # SMTP
 #    networks:
 #      - local
+#  minio:
+#    image: minio/minio:latest
+#    restart: always
+#    container_name: healthcare_minio
+#    ports:
+#      - "9000:9000"   # API endpoint
+#      - "9001:9001"   # Web Console
+#    environment:
+#      MINIO_ROOT_USER: admin
+#      MINIO_ROOT_PASSWORD: mechack200
+#    volumes:
+#      - ./minio-data:/data
+#    command: [ "server", "/data", "--console-address", ":9001" ]
+#    networks:
+#        - local
+#    healthcheck:
+#        test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+#        interval: 30s
+#        timeout: 20s
+#        retries: 3
+#
+#    # Auto-create buckets for your healthcare app
+#  minio-setup:
+#      image: minio/mc:latest
+#      depends_on:
+#        - minio
+#      networks:
+#        - local
+#      entrypoint: >
+#        /bin/sh -c "
+#        echo 'Waiting for MinIO to start...';
+#        sleep 10;
+#        /usr/bin/mc alias set healthcare http://minio:9000 admin mechack200;
+#        /usr/bin/mc mb healthcare/patient-documents --ignore-existing;
+#        /usr/bin/mc mb healthcare/profile-images --ignore-existing;
+#        /usr/bin/mc mb healthcare/medical-reports --ignore-existing;
+#        /usr/bin/mc mb healthcare/prescriptions --ignore-existing;
+#        /usr/bin/mc policy set public healthcare/profile-images;
+#        /usr/bin/mc policy set private healthcare/patient-documents;
+#        /usr/bin/mc policy set private healthcare/medical-reports;
+#        /usr/bin/mc policy set private healthcare/prescriptions;
+#        echo 'Healthcare buckets created and configured successfully!';
+#        "
+#networks:
+#  local:
+#    driver: bridge
+#
 
 version: '3.8'
+
 
 services:
   postgres:
@@ -47,8 +82,8 @@ services:
       - ./pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: healthcare_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mechack200
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5433:5432"
     networks:
@@ -58,12 +93,53 @@ services:
     image: mailhog/mailhog:latest
     restart: always
     ports:
-      - "8025:8025"  # Web UI
-      - "1025:1025"  # SMTP
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - local
 
+  minio:
+    image: minio/minio:latest
+    restart: always
+    container_name: healthcare_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - ./minio-data:/data
+    command: [ "server", "/data", "--console-address", ":9001" ]
+    networks:
+      - local
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    networks:
+      - local
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO to start...';
+      sleep 10;
+      /usr/bin/mc alias set healthcare http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+      /usr/bin/mc mb healthcare/patient-documents --ignore-existing;
+      /usr/bin/mc mb healthcare/profile-images --ignore-existing;
+      /usr/bin/mc mb healthcare/medical-reports --ignore-existing;
+      /usr/bin/mc mb healthcare/prescriptions --ignore-existing;
+      /usr/bin/mc policy set public healthcare/profile-images;
+      /usr/bin/mc policy set private healthcare/patient-documents;
+      /usr/bin/mc policy set private healthcare/medical-reports;
+      /usr/bin/mc policy set private healthcare/prescriptions;
+      echo 'Healthcare buckets created and configured successfully!';
+      "
 networks:
   local:
     driver: bridge
-
