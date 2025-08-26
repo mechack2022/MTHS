@@ -1,6 +1,7 @@
 package com.auth.service.entity;
 
 //import com.auth.service.entity.doctor.Doctor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -82,12 +83,125 @@ public class User extends BaseEntity {
         return allPermissions;
     }
 
+    // Helper method to check if user has a specific role
+    public boolean hasRole(Role.RoleName roleName) {
+        return roles.stream().anyMatch(role -> role.getRoleName() == roleName);
+    }
+
+    // Check if user has any of the specified roles
+    public boolean hasAnyRole(Role.RoleName... roleNames) {
+        for (Role.RoleName roleName : roleNames) {
+            if (hasRole(roleName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<UserProfile> profiles = new HashSet<>();
+
+    // Helper methods
+    @SuppressWarnings("unchecked")
+    public <T extends UserProfile> T getProfile(Class<T> profileType) {
+        return profiles.stream()
+                .filter(profileType::isInstance)
+                .map(profile -> (T) profile)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public <T extends UserProfile> boolean hasProfile(Class<T> profileType) {
+        return getProfile(profileType) != null;
+    }
+
+    public PatientProfile getPatientProfile() {
+        return getProfile(PatientProfile.class);
+    }
+
+    public DoctorProfile getDoctorProfile() {
+        return getProfile(DoctorProfile.class);
+    }
+
+    public LabTechnicianProfile getLabTechnicianProfile() {
+        return getProfile(LabTechnicianProfile.class);
+    }
+
+    public boolean hasPatientProfile() {
+        return hasProfile(PatientProfile.class);
+    }
+
+    public boolean hasDoctorProfile() {
+        return hasProfile(DoctorProfile.class);
+    }
+
+    public boolean hasLabTechnicianProfile() {
+        return hasProfile(LabTechnicianProfile.class);
+    }
+
+    public void addProfile(UserProfile profile) {
+        profiles.add(profile);
+        profile.setUser(this);
+    }
+
+    public void removeProfile(UserProfile profile) {
+        profiles.remove(profile);
+        profile.setUser(null);
+    }
+
+    // Get the primary profile based on account type
+    public UserProfile getPrimaryProfile() {
+        return switch (accountType) {
+            case PATIENT -> getPatientProfile();
+            case DOCTOR -> getDoctorProfile();
+            case LAB_TECHNICIAN -> getLabTechnicianProfile();
+            default -> null;
+        };
+    }
+
+    // Get primary profile by profile type (for multi-role support)
+    public UserProfile getPrimaryProfile(UserProfile.ProfileType profileType) {
+        return switch (profileType) {
+            case PATIENT -> getPatientProfile();
+            case DOCTOR -> getDoctorProfile();
+            case LAB_TECHNICIAN -> getLabTechnicianProfile();
+            default -> null;
+        };
+    }
+
+    // Get all active profiles
+    public Set<UserProfile> getActiveProfiles() {
+        return profiles.stream()
+                .filter(profile -> !profile.isDeleted())
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    // Check if user can create a profile of specific type based on roles
+    public boolean canCreateProfile(UserProfile.ProfileType profileType) {
+        return switch (profileType) {
+            case PATIENT -> hasRole(Role.RoleName.PATIENT);
+            case DOCTOR -> hasRole(Role.RoleName.DOCTOR);
+            case LAB_TECHNICIAN -> hasRole(Role.RoleName.LAB_TECHNICIAN);
+            default -> false;
+        };
+    }
+
+    public boolean hasPrimaryProfile() {
+        return getPrimaryProfile() != null;
+    }
+
+    public String getFullName() {
+        return getFirstName() + " " + getLastName();
+    }
+
     public enum AccountType {
         DOCTOR,
         PATIENT,
         ADMIN,
         PHARMACY,
         HOSPITAL,
-        INSURANCE
+        INSURANCE,
+        LAB_TECHNICIAN
     }
 }

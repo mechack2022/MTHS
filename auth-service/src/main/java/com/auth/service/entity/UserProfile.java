@@ -1,65 +1,57 @@
-package com.auth.service.entity;//package com.digi_dokita.entity;
-//import com.digi_dokita.constants.Gender;
-//import com.digi_dokita.constants.VerificationStatus;
-//import jakarta.persistence.Entity;
-//import jakarta.persistence.Table;
-//import lombok.Builder;
-//import lombok.Getter;
-//import lombok.Setter;
-//import jakarta.persistence.*;
-//import lombok.*;
-//
-//import java.time.LocalDate;
-//import java.time.LocalDateTime;
-//
-//@Entity
-//@Table(name = "user_profiles")
-//@Setter
-//@Getter
-//@Builder
-//@NoArgsConstructor
-//@AllArgsConstructor
-//public class UserProfile {
-//
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY) // or AUTO
-//    private Long id;
-//
-//    @OneToOne
-//    @JoinColumn(name = "user_id", nullable = false, unique = true)
-//    private User user;
-//
-//    @Column(name = "date_of_birth")
-//    private LocalDate dateOfBirth;
-//
-//    @Enumerated(EnumType.STRING)
-//    private Gender gender;
-//
-//    private String bio;
-//
-//    @Column(name = "professional_license_number")
-//    private String professionalLicenseNumber;
-//
-//    @Column(name = "phone_number")
-//    private String phoneNumber;
-//
-//    private String specialization;
-//
-//    @Column(columnDefinition = "TEXT")
-//    private String boardCertifications;
-//
-//    @Enumerated(EnumType.STRING)
-//    private VerificationStatus verificationStatus;
-//
-//    @Column(name = "verified_by")
-//    private String verifiedBy;
-//
-//    @Column(name = "profile_picture_url")
-//    private String profilePictureUrl;
-//
-//    @Column(name = "created_at", updatable = false)
-//    private LocalDateTime createdAt;
-//
-//    @Column(name = "updated_at")
-//    private LocalDateTime updatedAt;
-//}
+package com.auth.service.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "user_profiles")
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "profile_type", discriminatorType = DiscriminatorType.STRING)
+public abstract class UserProfile extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
+    private User user;
+
+    @Column(name = "profile_type", insertable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    private ProfileType profileType;
+
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
+    // Abstract method that each profile must implement
+    public abstract boolean isProfileComplete();
+
+    // Getters and setters
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
+    public ProfileType getProfileType() { return profileType; }
+    public void setProfileType(ProfileType profileType) { this.profileType = profileType; }
+
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public String getFullName() {
+        return user != null ? user.getFirstName() + " " + user.getLastName(): null;
+    }
+
+    public String getEmail() {
+        return user != null ? user.getEmail() : null;
+    }
+
+    // Override in child classes for specific implementations
+    public String getPhoneNumber() {
+        return null; // To be overridden by child classes
+    }
+
+    public String getAddress() {
+        return null; // To be overridden by child classes
+    }
+
+    public enum ProfileType {
+        PATIENT, DOCTOR, ADMIN, PHARMACY_OWNER, LAB_TECHNICIAN
+    }
+}

@@ -58,7 +58,7 @@ public class AuthController {
 
     @PostMapping("/resend-verification-code")
     public ResponseEntity<ApiResponse<String>> resendVerificationCode(@Valid @RequestBody ResendCodeRequest request) {
-       String res = authService.resendVerificationCode(request.email());
+        String res = authService.resendEmailVerificationCode(request.email());
         ApiResponse<String> response = ApiResponse.success(
                 res,
                 request.email(),
@@ -70,129 +70,55 @@ public class AuthController {
 
     @PostMapping("/initiate-password-reset")
     public ResponseEntity<ApiResponse<String>> initiatePasswordReset(@Valid @RequestBody InitiatePasswordResetRequest request) {
-        try {
-            log.info("Received password reset initiation request for email: {}", request.email());
-
-            authService.initiatePasswordReset(request.email());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "If an account with this email exists, you will receive a password reset code shortly."
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException e) {
-            log.warn("Failed to initiate password reset for email: {} - {}", request.email(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error while initiating password reset for email: {}", request.email(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Failed to initiate password reset due to an internal error. Please try again later.",
-                    "PASSWORD_RESET_FAILED",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        log.info("Received password reset initiation request for email: {}", request.email());
+        
+        authService.initiatePasswordReset(request.email());
+        
+        ApiResponse<String> response = ApiResponse.success(
+                "If an account with this email exists, you will receive a password reset code shortly."
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/verify-reset-password-code")
-    public ResponseEntity<ApiResponse<String>> verifyResetPasswordCode(@Valid @RequestBody VerifyResetCodeRequest request) {
-        try {
-            log.info("Received password reset code verification request for email: {}", request.email());
-
-            authService.verifyResetPasswordCode(request.email(), request.code());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "Password reset code verified successfully. You can now reset your password."
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException e) {
-            log.warn("Failed to verify reset password code for email: {} - {}", request.email(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error while verifying reset password code for email: {}", request.email(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Failed to verify reset code due to an internal error. Please try again later.",
-                    "PASSWORD_RESET_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<VerifyResetCodeResponse>> verifyResetPasswordCode(@Valid @RequestBody VerifyResetCodeRequest request) {
+        log.info("Received password reset code verification request for email: {}", request.email());
+        
+        String resetToken = authService.verifyResetPasswordCode(request.email(), request.code());
+        VerifyResetCodeResponse responseData = VerifyResetCodeResponse.success(resetToken);
+        
+        ApiResponse<VerifyResetCodeResponse> response = ApiResponse.success(
+                "Password reset code verified successfully. Use the provided token to reset your password.",
+                responseData,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/resend-password-reset-code")
     public ResponseEntity<ApiResponse<String>> resendPasswordResetCode(@Valid @RequestBody ResendPasswordResetRequest request) {
-        try {
-            log.info("Received resend password reset code request for email: {}", request.email());
-
-            authService.resendPasswordResetCode(request.email());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "If an account with this email exists, a new password reset code has been sent."
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException e) {
-            log.warn("Failed to resend password reset code for email: {} - {}", request.email(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error while resending password reset code for email: {}", request.email(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Failed to resend password reset code due to an internal error. Please try again later.",
-                    "RESEND_FAILED",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        log.info("Received resend password reset code request for email: {}", request.email());
+        
+        authService.resendPasswordResetCode(request.email());
+        
+        ApiResponse<String> response = ApiResponse.success(
+                "If an account with this email exists, a new password reset code has been sent."
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/reset-password")
-    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        try {
-            log.info("Received password reset request for userId: {}", request.userId());
-
-            authService.resetPassword(request.userId(), request.newPassword(), request.confirmPassword());
-
-            ApiResponse<String> response = ApiResponse.success(
-                    "Password has been reset successfully."
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (BadRequestException e) {
-            log.warn("Failed to reset password for userId: {} - {}", request.userId(), e.getMessage());
-            ApiResponse<String> response = ApiResponse.error(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST.value()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        } catch (Exception e) {
-            log.error("Unexpected error while resetting password for userId: {}", request.userId(), e);
-            ApiResponse<String> response = ApiResponse.error(
-                    "Failed to reset password due to an internal error. Please try again later.",
-                    "PASSWORD_UPDATE_FAILED",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordWithTokenRequest request) {
+        log.info("Received password reset request with token");
+        
+        String result = authService.resetPasswordWithToken(
+                request.getResetToken(), 
+                request.getNewPassword(), 
+                request.getConfirmPassword()
+        );
+        
+        ApiResponse<String> response = ApiResponse.success(result);
+        return ResponseEntity.ok(response);
     }
 
 }
