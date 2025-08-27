@@ -44,6 +44,11 @@ minio-data/
 # Ignore MinIO system files anywhere in the project
 **/.minio.sys/
 
+# More specific MinIO patterns
+minio-data
+**/minio-data
+.minio.sys
+
 ### PostgreSQL Data ###
 # Ignore PostgreSQL data directory
 pgdata/
