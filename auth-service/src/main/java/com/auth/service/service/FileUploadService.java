@@ -23,11 +23,22 @@ public class FileUploadService {
 
     @PostConstruct
     public void init() {
-        if (minioBucketsConfig.getBuckets() == null || minioBucketsConfig.getBuckets().isEmpty()) {
-            log.warn("No MinIO buckets configured in application.yml. Skipping bucket initialization.");
-            return;
+        try {
+            if (minioBucketsConfig.getBuckets() == null || minioBucketsConfig.getBuckets().isEmpty()) {
+                log.warn("No MinIO buckets configured in application.yml. Skipping bucket initialization.");
+                return;
+            }
+            
+            if (minioBucketsConfig.getEndpoint() == null || minioBucketsConfig.getAccessKey() == null) {
+                log.warn("MinIO configuration incomplete. Endpoint: {}, AccessKey: {}. Skipping bucket initialization.", 
+                    minioBucketsConfig.getEndpoint(), minioBucketsConfig.getAccessKey() != null ? "SET" : "NULL");
+                return;
+            }
+            
+            minioBucketsConfig.getBuckets().values().forEach(this::ensureBucketExists);
+        } catch (Exception e) {
+            log.error("Failed to initialize MinIO buckets. Service will continue without file upload capability: {}", e.getMessage());
         }
-        minioBucketsConfig.getBuckets().values().forEach(this::ensureBucketExists);
     }
 
     public FileUploadResponse uploadFile(MultipartFile file, FileCategory category) {
