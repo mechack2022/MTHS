@@ -191,6 +191,47 @@ public class VerificationServiceImpl implements VerificationService {
         log.info("Verification code resent for userUuid: {}, type: {}", userUuid, type);
     }
 
+    // ========================================================================
+    // RATE LIMITING AND SECURITY
+    // ========================================================================
+
+    @Override
+    public boolean canRequestNewCode(String userUuid, CodeType type) {
+        Optional<VerificationCode> lastCode = verificationCodeRepository
+                .findTopByUserUuidAndTypeOrderByCreatedAtDesc(userUuid, type);
+
+        if (lastCode.isEmpty()) {
+            return true;
+        }
+
+        // Check cooldown period (prevent spam)
+        LocalDateTime cooldownEnd = lastCode.get().getCreatedAt().plusMinutes(getCooldownMinutes(type));
+        return LocalDateTime.now().isAfter(cooldownEnd);
+    }
+
+    @Override
+    public long getRemainingCooldownSeconds(String userUuid, CodeType type) {
+        Optional<VerificationCode> lastCode = verificationCodeRepository
+                .findTopByUserUuidAndTypeOrderByCreatedAtDesc(userUuid, type);
+
+        if (lastCode.isEmpty()) {
+            return 0;
+        }
+
+        LocalDateTime cooldownEnd = lastCode.get().getCreatedAt().plusMinutes(getCooldownMinutes(type));
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isAfter(cooldownEnd)) {
+            return 0;
+        }
+
+        return java.time.Duration.between(now, cooldownEnd).getSeconds();
+    }
+
+    // ========================================================================
+    // HELPER METHODS
+    // ========================================================================
+
     private int getExpirationMinutes(CodeType type) {
         switch (type) {
             case EMAIL_VERIFICATION:
@@ -200,6 +241,16 @@ public class VerificationServiceImpl implements VerificationService {
             default:
                 return 15;
         }
+    }
 
+    private int getCooldownMinutes(CodeType type) {
+        switch (type) {
+            case EMAIL_VERIFICATION:
+                return 1; // 1 minute cooldown
+            case PASSWORD_RESET:
+                return 2; // 2 minute cooldown for security
+            default:
+                return 1;
+        }
     }
 }

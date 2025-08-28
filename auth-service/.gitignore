@@ -32,5 +32,25 @@ build/
 ### VS Code ###
 .vscode/
 
-###
+### Environment Files ###
 .env
+
+### MinIO Data ###
+# Ignore MinIO data directory and all its contents
+minio-data/
+../minio-data/
+**/minio-data/
+
+# Ignore MinIO system files anywhere in the project
+**/.minio.sys/
+
+# More specific MinIO patterns
+minio-data
+**/minio-data
+.minio.sys
+
+### PostgreSQL Data ###
+# Ignore PostgreSQL data directory
+pgdata/
+../pgdata/
+**/pgdata/

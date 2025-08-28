@@ -61,6 +61,7 @@ public class Role extends BaseEntity {
         DOCTOR,
         PATIENT,
         NURSE,
+        LAB_TECHNICIAN,
         PHARMACY_ADMIN,
         PHARMACY_STAFF,
         HOSPITAL_ADMIN,

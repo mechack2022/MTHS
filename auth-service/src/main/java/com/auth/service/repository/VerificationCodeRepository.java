@@ -38,5 +38,14 @@ public interface VerificationCodeRepository extends JpaRepository<VerificationCo
     void deleteExpiredCodes(@Param("expiryTime") LocalDateTime expiryTime);
 
     long countByUserUuidAndTypeAndUsedFalse(String userId, CodeType type);
+
+    // Rate limiting support
+    Optional<VerificationCode> findTopByUserUuidAndTypeOrderByCreatedAtDesc(String userId, CodeType type);
+
+    @Query("SELECT COUNT(vc) FROM VerificationCode vc WHERE vc.userUuid = :userId " +
+            "AND vc.type = :type AND vc.createdAt > :since")
+    long countRecentCodeRequests(@Param("userId") String userId, 
+                                @Param("type") CodeType type, 
+                                @Param("since") LocalDateTime since);
 }
 

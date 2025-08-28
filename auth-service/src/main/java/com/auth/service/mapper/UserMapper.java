@@ -25,12 +25,8 @@ public class UserMapper {
                 .accountType(user.getAccountType() != null ? user.getAccountType() : null)
                 .isActive(user.getIsActive())
                 .accountVerified(user.getAccountVerified())
-//                .verificationCodeExpiry(user.getVerificationCodeExpiry())
-//                .passwordResetCodeExpiry(user.getPasswordResetCodeExpiry())
                 .roles(extractRoleNames(user))
                 .permissions(extractPermissionNames(user))
-//                .createdAt(user.getCreatedAt())
-//                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
