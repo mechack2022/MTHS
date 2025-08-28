@@ -64,22 +64,23 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    // Error response
-    public static <T> ApiResponse<T> error(String error, int statusCode) {
+    // Error response - specific error details go in message, generic error in error field
+    public static <T> ApiResponse<T> error(String specificErrorDetails, int statusCode) {
         return ApiResponse.<T>builder()
                 .success(false)
-                .error(error)
+                .message(specificErrorDetails)
+                .error("An error occurred while processing your request")
                 .statusCode(statusCode)
                 .timestamp(LocalDateTime.now())
                 .build();
     }
 
-    // Error response with message
-    public static <T> ApiResponse<T> error(String message, String error, int statusCode) {
+    // Error response with custom generic error message
+    public static <T> ApiResponse<T> error(String specificErrorDetails, String genericErrorMessage, int statusCode) {
         return ApiResponse.<T>builder()
                 .success(false)
-                .message(message)
-                .error(error)
+                .message(specificErrorDetails)
+                .error(genericErrorMessage)
                 .statusCode(statusCode)
                 .timestamp(LocalDateTime.now())
                 .build();

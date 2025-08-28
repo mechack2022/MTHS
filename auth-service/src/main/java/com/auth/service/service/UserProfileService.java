@@ -30,6 +30,6 @@ public interface UserProfileService {
     // Profile Deletion (if needed)
     void deleteProfile(String userId, UserProfile.ProfileType profileType);
 
-    @PreAuthorize("@userProfileService.canUserAccessProfileService(#userId)")
-    void deleteProfile(String userId, UserProfileServiceImpl.ProfileType profileType);
+    // Access Control
+    boolean canUserAccessProfileService(String userId);
 }

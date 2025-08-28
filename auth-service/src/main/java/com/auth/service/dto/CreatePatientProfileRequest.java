@@ -1,6 +1,7 @@
 package com.auth.service.dto;
 
 import com.auth.service.constants.Gender;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.URL;
 
@@ -20,6 +21,7 @@ public class CreatePatientProfileRequest {
 
     @NotBlank(message = "NIN is required")
     @Size(min = 11, max = 11, message = "NIN must be exactly 11 digits")
+    @JsonProperty("NIN")
     private String NIN;
 
     private String maritalStatus;
@@ -45,6 +47,9 @@ public class CreatePatientProfileRequest {
 
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getUserEmail() { return userEmail; }
+    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
 
     public Gender getGender() { return gender; }
     public void setGender(Gender gender) { this.gender = gender; }

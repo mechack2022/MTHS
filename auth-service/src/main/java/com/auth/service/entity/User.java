@@ -1,6 +1,7 @@
 package com.auth.service.entity;
 
 //import com.auth.service.entity.doctor.Doctor;
+import com.auth.service.constants.VerificationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -45,6 +46,19 @@ public class User extends BaseEntity {
 
     @Column(name = "acccount_verified", nullable = false)
     private Boolean accountVerified = false;
+
+    @Column(name = "verification_status")
+    @Enumerated(EnumType.STRING)
+    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
+    @Column(name = "verified_by")
+    private String verifiedBy;
+
+    @Column(name = "verification_date")
+    private LocalDateTime verificationDate;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
 
     // Many-to-Many relationship with Role
     @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})

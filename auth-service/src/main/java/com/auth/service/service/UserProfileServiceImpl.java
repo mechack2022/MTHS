@@ -39,13 +39,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 
     @Override
-    @PreAuthorize("@userProfileService.canUserAccessProfileService(#userId)")
     public PatientProfileDTO createPatientProfile(String userId, CreatePatientProfileRequest request) {
         User user = findUserByUuid(userId);
-
         // Validate user can have a patient profile
         validateUserForProfileCreation(user, UserProfile.ProfileType.PATIENT);
-
         // Check if patient profile already exists
         if (user.hasPatientProfile()) {
             throw new BadRequestException("profile", "Patient profile already exists for this user");
@@ -83,7 +80,6 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
-    @PreAuthorize("@userProfileService.canUserAccessProfileService(#userId)")
     public DoctorProfileDTO createDoctorProfile(String userId, CreateDoctorProfileRequest request) {
         User user = findUserByUuid(userId);
 
@@ -131,7 +127,6 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
-    @PreAuthorize("@userProfileService.canUserAccessProfileService(#userId)")
     public LabTechnicianProfileDTO createLabTechnicianProfile(String userId, CreateLabTechnicianProfileRequest request) {
         User user = findUserByUuid(userId);
 
@@ -351,33 +346,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     }
 
-    @Override
-    @PreAuthorize("@userProfileService.canUserAccessProfileService(#userId)")
-    public void deleteProfile(String userId, ProfileType profileType) {
-        User user = findUserByUuid(userId);
-
-        switch (profileType) {
-            case PATIENT -> {
-                PatientProfile profile = user.getPatientProfile();
-                if (profile != null) {
-                    user.removeProfile(profile);
-                    // Downgrade role back to PENDING
-                    downgradeUserRole(user);
-                    userRepository.save(user);
-                }
-            }
-            case DOCTOR -> {
-                DoctorProfile profile = user.getDoctorProfile();
-                if (profile != null) {
-                    user.removeProfile(profile);
-                    // Downgrade role back to PENDING
-                    downgradeUserRole(user);
-                    userRepository.save(user);
-                }
-            }
-            default -> throw new IllegalArgumentException("Unsupported profile type: " + profileType);
-        }
-    }
 
     // ========================================================================
     // ACCESS CONTROL METHOD
@@ -405,10 +373,18 @@ public class UserProfileServiceImpl implements UserProfileService {
             throw new BadRequestException("email", "Email must be verified before creating profile");
         }
 
-        // Check if user has the required role for the profile type
-        if (!user.canCreateProfile(profileType)) {
-            throw new BadRequestException("role", 
-                    "User does not have the required role to create profile of type " + profileType);
+        // Check if user's account type matches the profile type they want to create
+        boolean canCreate = switch (profileType) {
+            case PATIENT -> user.getAccountType() == User.AccountType.PATIENT;
+            case DOCTOR -> user.getAccountType() == User.AccountType.DOCTOR;
+            case LAB_TECHNICIAN -> user.getAccountType() == User.AccountType.LAB_TECHNICIAN;
+            default -> false;
+        };
+
+        if (!canCreate) {
+            throw new BadRequestException("accountType", 
+                    "User account type does not match profile type " + profileType + 
+                    ". Expected account type: " + profileType.name());
         }
 
         // Check if user already has this type of profile

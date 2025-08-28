@@ -12,10 +12,12 @@ import com.auth.service.repository.PasswordResetRepository;
 import com.auth.service.repository.RoleRepository;
 import com.auth.service.constants.CodeType;
 import com.auth.service.constants.VerificationResult;
+import com.auth.service.constants.VerificationStatus;
 import com.auth.service.jwt.JwtTokenProvider;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -84,7 +86,8 @@ public class UserAuthServiceImpl implements UserAuthService {
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
         user.setMailVerified(false);
-        user.setAccountVerified(false); // Will be true when profile is complete
+        user.setAccountVerified(false);
+        user.setVerificationStatus(com.auth.service.constants.VerificationStatus.PENDING);
         user.setIsActive(true);
         user.setAccountType(req.getAccountType());
         user.setCreatedAt(LocalDateTime.now());
@@ -118,7 +121,6 @@ public class UserAuthServiceImpl implements UserAuthService {
         }
 
         User user = userOpt.get();
-
         // Check if user is active
         if (!user.getIsActive()) {
             throw new BadRequestException("account", "Account is inactive. Please contact support.");
@@ -131,7 +133,12 @@ public class UserAuthServiceImpl implements UserAuthService {
 
         // Check if email is verified
         if (!user.getMailVerified()) {
-            throw new RuntimeException("Email not verified. Please verify your email first.");
+            throw new BadRequestException("email", "Email not verified. Please verify your email first.");
+        }
+        
+        // Check if account is verified by admin
+        if (!user.getAccountVerified()) {
+            throw new BadRequestException("account", "Account not verified by administrator. Please wait for admin approval.");
         }
 
         // Generate tokens
@@ -192,7 +199,6 @@ public class UserAuthServiceImpl implements UserAuthService {
         return verificationResult;
     }
 
-    // Old method removed - use resendEmailVerificationCode instead
 
     @Override
     public String resendEmailVerificationCode(String email) {
@@ -517,35 +523,24 @@ public class UserAuthServiceImpl implements UserAuthService {
     @Override
     public void handleProfileCompletionChange(String userId) {
         User user = findUserByUuid(userId);
-
-        if (!user.getMailVerified()) {
-            return; // Email must be verified first
-        }
-
+        log.info("Profile completion status changed for user: {} (email verified: {}, account verified: {})", 
+                userId, user.getMailVerified(), user.getAccountVerified());
+        
+        // Only track profile completion - do NOT auto-verify accounts
+        // Admin must manually verify after reviewing profile
         UserProfile primaryProfile = user.getPrimaryProfile();
         if (primaryProfile != null && primaryProfile.isProfileComplete()) {
-            // Profile is complete, upgrade from PENDING role
-            Role.RoleName newRole = determineRoleFromAccountType(user.getAccountType());
-            if (newRole != null && !user.getAccountVerified()) {
-                // Remove PENDING role and assign appropriate role
-                rolePermissionService.removeRoleFromUser(user.getId(), Role.RoleName.PENDING);
-                rolePermissionService.assignRoleToUser(user.getId(), newRole);
-
-                // Mark account as fully verified
-                user.setAccountVerified(true);
-                user.setUpdatedAt(LocalDateTime.now());
-                userRepository.save(user);
-            }
+            log.info("Profile completed for user: {}. Awaiting admin verification.", userId);
+            // Profile is complete - user will remain in PENDING status until admin verifies
         } else {
-            // Profile is incomplete or deleted, downgrade to PENDING
-            Role.RoleName currentRole = determineRoleFromAccountType(user.getAccountType());
-            if (currentRole != null && user.getAccountVerified()) {
-                rolePermissionService.removeRoleFromUser(user.getId(), currentRole);
-                rolePermissionService.assignRoleToUser(user.getId(), Role.RoleName.PENDING);
-
+            log.info("Profile incomplete or deleted for user: {}", userId);
+            // If profile is removed and user was previously verified, they should be unverified
+            if (user.getAccountVerified()) {
                 user.setAccountVerified(false);
+                user.setVerificationStatus(VerificationStatus.PENDING);
                 user.setUpdatedAt(LocalDateTime.now());
                 userRepository.save(user);
+                log.info("User account unverified due to incomplete profile: {}", userId);
             }
         }
     }
@@ -567,9 +562,8 @@ public class UserAuthServiceImpl implements UserAuthService {
         // All accounts start with PENDING role until profile is complete
         switch (accountType) {
             case ADMIN:
-                // Admin gets immediate full access
                 initialRole = Role.RoleName.ADMIN;
-                user.setAccountVerified(true); // Admin accounts are immediately verified
+                user.setAccountVerified(true);
                 break;
             case DOCTOR:
             case PATIENT:
@@ -577,7 +571,6 @@ public class UserAuthServiceImpl implements UserAuthService {
             case HOSPITAL:
             case INSURANCE:
             default:
-                // All other accounts start with PENDING
                 initialRole = Role.RoleName.PENDING;
                 break;
         }
@@ -623,6 +616,84 @@ public class UserAuthServiceImpl implements UserAuthService {
         if (!hasUpper || !hasLower || !hasDigit) {
             throw new RuntimeException("Password must contain at least one uppercase letter, one lowercase letter, and one digit");
         }
+    }
+
+    // ========================================================================
+    // ADMIN VERIFICATION METHODS
+    // ========================================================================
+
+    @Override
+    public Page<UserDTO> getPendingUsers(org.springframework.data.domain.Pageable pageable) {
+        log.info("Fetching pending users for admin verification");
+        
+        Page<User> pendingUsers = userRepository.findByVerificationStatus(
+            com.auth.service.constants.VerificationStatus.PENDING, pageable);
+        
+        return pendingUsers.map(userMapper::toDto);
+    }
+
+    @Override
+    public UserDTO verifyUserAccount(String userId) {
+        log.info("Admin verifying user account with ID: {}", userId);
+        
+        User user = findUserByUuid(userId);
+        
+        if (user.getAccountVerified()) {
+            throw new BadRequestException("user", "User account is already verified");
+        }
+        
+        if (user.getVerificationStatus() == com.auth.service.constants.VerificationStatus.REJECTED) {
+            // Allow re-verification of rejected accounts
+            log.info("Re-verifying previously rejected account: {}", userId);
+        }
+        
+        // Verify account
+        user.setAccountVerified(true);
+        user.setVerificationStatus(com.auth.service.constants.VerificationStatus.APPROVED);
+        user.setVerificationDate(LocalDateTime.now());
+        user.setVerifiedBy("ADMIN"); // Could be enhanced to track specific admin
+        user.setRejectionReason(null); // Clear any previous rejection reason
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        // Assign appropriate role based on account type and profile completion
+        UserProfile primaryProfile = user.getPrimaryProfile();
+        if (primaryProfile != null && primaryProfile.isProfileComplete()) {
+            Role.RoleName newRole = determineRoleFromAccountType(user.getAccountType());
+            if (newRole != null) {
+                // Remove PENDING role and assign appropriate role
+                rolePermissionService.removeRoleFromUser(user.getId(), Role.RoleName.PENDING);
+                rolePermissionService.assignRoleToUser(user.getId(), newRole);
+                log.info("Assigned role {} to verified user: {}", newRole, userId);
+            }
+        }
+        
+        User savedUser = userRepository.save(user);
+        
+        log.info("User account verified successfully: {}", userId);
+        return userMapper.toDto(savedUser);
+    }
+
+    @Override
+    public void rejectUserAccount(String userId, String reason) {
+        log.info("Admin rejecting user account with ID: {}", userId);
+        
+        User user = findUserByUuid(userId);
+        
+        if (user.getAccountVerified()) {
+            throw new BadRequestException("user", "Cannot reject an already verified account");
+        }
+        
+        user.setAccountVerified(false);
+        user.setVerificationStatus(com.auth.service.constants.VerificationStatus.REJECTED);
+        user.setVerificationDate(LocalDateTime.now());
+        user.setVerifiedBy("ADMIN");
+        user.setRejectionReason(reason);
+        user.setIsActive(false); // Deactivate rejected accounts
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        userRepository.save(user);
+        
+        log.info("User account rejected successfully: {} with reason: {}", userId, reason);
     }
 
     // ========================================================================

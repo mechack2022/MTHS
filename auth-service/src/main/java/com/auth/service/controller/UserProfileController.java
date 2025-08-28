@@ -1,7 +1,9 @@
 package com.auth.service.controller;
 
 import com.auth.service.dto.*;
+import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.service.UserProfileService;
+import com.auth.service.service.ProfileCreationTokenService;
 import com.auth.service.entity.UserProfile.ProfileType;
 import com.auth.service.utils.ProfileCompletionStatus;
 import jakarta.validation.Valid;
@@ -21,6 +23,83 @@ import org.springframework.web.bind.annotation.*;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
+    private final ProfileCreationTokenService profileCreationTokenService;
+
+    // ========================================================================
+    // PUBLIC PROFILE CREATION ENDPOINTS (no authentication required)
+    // ========================================================================
+
+    @PostMapping("/public/patient/{userId}")
+    public ResponseEntity<ApiResponse<PatientProfileDTO>> createPatientProfilePublic(
+            @PathVariable String userId,
+            @Valid @RequestBody CreatePatientProfileRequest request,
+            @RequestHeader("Profile-Creation-Token") String token) {
+        
+        log.info("Creating patient profile for user: {} (secure public endpoint)", userId);
+        
+        // Validate token and user permissions (email verification required)
+        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo = 
+                profileCreationTokenService.validateProfileCreationToken(token, userId);
+        
+        log.info("Token validated for user: {} ({})", tokenInfo.userId, tokenInfo.userEmail);
+
+        PatientProfileDTO profile = userProfileService.createPatientProfile(userId, request);
+
+        ApiResponse<PatientProfileDTO> response = ApiResponse.success(
+                "Patient profile created successfully",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/public/doctor/{userId}")
+    public ResponseEntity<ApiResponse<DoctorProfileDTO>> createDoctorProfilePublic(
+            @PathVariable String userId,
+            @Valid @RequestBody CreateDoctorProfileRequest request,
+            @RequestHeader("Profile-Creation-Token") String token) {
+        
+        log.info("Creating doctor profile for user: {} (secure public endpoint)", userId);
+        
+        // Validate token and user permissions (email verification required)
+        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo = 
+                profileCreationTokenService.validateProfileCreationToken(token, userId);
+        
+        log.info("Token validated for user: {} ({})", tokenInfo.userId, tokenInfo.userEmail);
+
+        DoctorProfileDTO profile = userProfileService.createDoctorProfile(userId, request);
+
+        ApiResponse<DoctorProfileDTO> response = ApiResponse.success(
+                "Doctor profile created successfully",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/public/lab-technician/{userId}")
+    public ResponseEntity<ApiResponse<LabTechnicianProfileDTO>> createLabTechnicianProfilePublic(
+            @PathVariable String userId,
+            @Valid @RequestBody CreateLabTechnicianProfileRequest request,
+            @RequestHeader("Profile-Creation-Token") String token) {
+        
+        log.info("Creating lab technician profile for user: {} (secure public endpoint)", userId);
+        
+        // Validate token and user permissions (email verification required)
+        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo = 
+                profileCreationTokenService.validateProfileCreationToken(token, userId);
+        
+        log.info("Token validated for user: {} ({})", tokenInfo.userId, tokenInfo.userEmail);
+
+        LabTechnicianProfileDTO profile = userProfileService.createLabTechnicianProfile(userId, request);
+
+        ApiResponse<LabTechnicianProfileDTO> response = ApiResponse.success(
+                "Lab technician profile created successfully",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
     // ========================================================================
     // PROFILE CREATION ENDPOINTS (for authenticated users)

@@ -3,9 +3,11 @@ package com.auth.service.controller;
 
 import com.auth.service.constants.VerificationResult;
 import com.auth.service.dto.*;
+import com.auth.service.dto.UserRegistrationResponse;
 import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.service.UserAuthService;
 import com.auth.service.service.VerificationService;
+import com.auth.service.service.ProfileCreationTokenService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,15 +24,22 @@ public class AuthController {
 
     private final UserAuthService authService;
     private final VerificationService verificationService;
+    private final ProfileCreationTokenService profileCreationTokenService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody UserDTO newUserRecord) {
+    public ResponseEntity<ApiResponse<UserRegistrationResponse>> registerUser(@Valid @RequestBody UserDTO newUserRecord) {
             log.info("Received user registration request for email: {}", newUserRecord.getEmail());
-            authService.createUser(newUserRecord);
-            ApiResponse<String> response = ApiResponse.success(
+            UserDTO createdUser = authService.createUser(newUserRecord);
+            
+            UserRegistrationResponse responseData = new UserRegistrationResponse(
+                createdUser.getUuid(),
+                createdUser.getEmail()
+            );
+            
+            ApiResponse<UserRegistrationResponse> response = ApiResponse.success(
                     "User registered successfully. Please check your email for verification code.",
-                    newUserRecord.getEmail()
-                    ,HttpStatus.CREATED.value()
+                    responseData,
+                    HttpStatus.CREATED.value()
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -120,5 +129,73 @@ public class AuthController {
         ApiResponse<String> response = ApiResponse.success(result);
         return ResponseEntity.ok(response);
     }
+
+    // ========================================================================
+    // PROFILE CREATION TOKEN ENDPOINTS
+    // ========================================================================
+
+    @PostMapping("/generate-profile-token")
+    public ResponseEntity<ApiResponse<ProfileCreationTokenResponse>> generateProfileCreationToken(
+            @Valid @RequestBody GenerateProfileTokenRequest request) {
+        
+        log.info("Generating profile creation token for user: {}", request.userId());
+        
+        String token = profileCreationTokenService.generateProfileCreationToken(request.userId());
+        
+        ProfileCreationTokenResponse tokenResponse = new ProfileCreationTokenResponse(
+            token,
+            "Token valid for 24 hours. Use this token to create your profile."
+        );
+        
+        ApiResponse<ProfileCreationTokenResponse> response = ApiResponse.success(
+            "Profile creation token generated successfully", 
+            tokenResponse,
+            HttpStatus.OK.value()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/profile-creation-status/{userId}")
+    public ResponseEntity<ApiResponse<UserVerificationStatusResponse>> getProfileCreationStatus(
+            @PathVariable String userId) {
+        
+        log.info("Checking profile creation status for user: {}", userId);
+        
+        ProfileCreationTokenService.UserVerificationStatus status = 
+                profileCreationTokenService.getUserVerificationStatus(userId);
+        
+        UserVerificationStatusResponse statusResponse = new UserVerificationStatusResponse(
+            status.emailVerified,
+            status.accountVerified,
+            status.isActive,
+            status.verificationStatus.getDescription(),
+            profileCreationTokenService.canUserCreateProfile(userId)
+        );
+        
+        ApiResponse<UserVerificationStatusResponse> response = ApiResponse.success(
+            "User verification status retrieved", 
+            statusResponse,
+            HttpStatus.OK.value()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    // ========================================================================
+    // REQUEST/RESPONSE RECORDS
+    // ========================================================================
+
+    public record GenerateProfileTokenRequest(String userId) {}
+    
+    public record ProfileCreationTokenResponse(String token, String message) {}
+    
+    public record UserVerificationStatusResponse(
+        boolean emailVerified,
+        boolean accountVerified, 
+        boolean isActive,
+        String verificationStatus,
+        boolean canCreateProfile
+    ) {}
 
 }

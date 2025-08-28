@@ -44,8 +44,8 @@ public class GlobalExceptionHandler {
         log.error("Validation error: {}", errors);
 
         ApiResponse<Map<String, String>> response = ApiResponse.error(
-                "Validation failed",
                 "Invalid input data",
+                "Validation failed",
                 HttpStatus.BAD_REQUEST.value()
         );
         response.setData(errors);
@@ -66,8 +66,8 @@ public class GlobalExceptionHandler {
         log.error("Constraint violation: {}", errors);
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Validation failed",
                 errors,
+                "Validation failed",
                 HttpStatus.BAD_REQUEST.value()
         );
 
@@ -90,6 +90,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    // Handle resource not found (custom exception)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+            ResourceNotFoundException ex) {
+
+        log.error("Resource not found: {}", ex.getMessage());
+
+        ApiResponse<Object> response = ApiResponse.error(
+                ex.getMessage(),
+                "Resource not found",
+                HttpStatus.NOT_FOUND.value()
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
     // Handle data integrity violation
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(
@@ -98,8 +114,8 @@ public class GlobalExceptionHandler {
         log.error("Data integrity violation: {}", ex.getMessage());
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Data integrity constraint violated",
                 "Cannot perform operation due to data constraints",
+                "Data integrity constraint violated",
                 HttpStatus.CONFLICT.value()
         );
 
@@ -118,8 +134,8 @@ public class GlobalExceptionHandler {
                 ex.getValue(), ex.getName(), ex.getRequiredType().getSimpleName());
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Invalid parameter type",
                 error,
+                "Invalid parameter type",
                 HttpStatus.BAD_REQUEST.value()
         );
 
@@ -136,8 +152,8 @@ public class GlobalExceptionHandler {
         String error = "Required parameter '" + ex.getParameterName() + "' is missing";
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Missing required parameter",
                 error,
+                "Missing required parameter",
                 HttpStatus.BAD_REQUEST.value()
         );
 
@@ -152,8 +168,8 @@ public class GlobalExceptionHandler {
         log.error("HTTP message not readable: {}", ex.getMessage());
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Invalid JSON format",
                 "Request body is malformed or missing",
+                "Invalid JSON format",
                 HttpStatus.BAD_REQUEST.value()
         );
 
@@ -170,8 +186,8 @@ public class GlobalExceptionHandler {
         String error = "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint";
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Method not allowed",
                 error,
+                "Method not allowed",
                 HttpStatus.METHOD_NOT_ALLOWED.value()
         );
 
@@ -187,8 +203,8 @@ public class GlobalExceptionHandler {
         log.error("Illegal argument: {}", ex.getMessage());
 
         ApiResponse<Object> response = ApiResponse.error(
-                "Invalid argument",
                 ex.getMessage(),
+                "Invalid argument",
                 HttpStatus.BAD_REQUEST.value()
         );
 
@@ -203,7 +219,6 @@ public class GlobalExceptionHandler {
         log.error("Runtime exception: {}", ex.getMessage(), ex);
 
         ApiResponse<Object> response = ApiResponse.error(
-                "An error occurred while processing your request",
                 ex.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
@@ -219,8 +234,8 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
 
         ApiResponse<Object> response = ApiResponse.error(
-                "An unexpected error occurred",
                 "Please try again later or contact support",
+                "An unexpected error occurred",
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
 

@@ -1,6 +1,9 @@
 package com.auth.service.repository;
 
 import com.auth.service.entity.User;
+import com.auth.service.constants.VerificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -65,5 +68,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
              ") AS combined_phones",
              nativeQuery = true)
      boolean existsByProfilePhoneNumber(@Param("phoneNumber") String phoneNumber);
+
+     // Admin verification methods
+     Page<User> findByVerificationStatus(VerificationStatus verificationStatus, Pageable pageable);
 
 }

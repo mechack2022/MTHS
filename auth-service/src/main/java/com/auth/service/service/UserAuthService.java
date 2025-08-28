@@ -4,6 +4,7 @@ import com.auth.service.constants.VerificationResult;
 import com.auth.service.dto.TokenResponse;
 import com.auth.service.dto.UserDTO;
 import com.auth.service.entity.User;
+import org.springframework.data.domain.Page;
 
 public interface UserAuthService {
 
@@ -117,4 +118,29 @@ public interface UserAuthService {
     // ========================================================================
 
     void handleProfileCompletionChange(String userId);
+
+    // ========================================================================
+    // ADMIN VERIFICATION METHODS
+    // ========================================================================
+
+    /**
+     * Get pending users for admin verification
+     * @param pageable Pagination parameters
+     * @return Page of pending users
+     */
+    Page<UserDTO> getPendingUsers(org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Verify user account by admin
+     * @param userId User UUID
+     * @return Updated user DTO
+     */
+    UserDTO verifyUserAccount(String userId);
+
+    /**
+     * Reject user account by admin
+     * @param userId User UUID
+     * @param reason Rejection reason
+     */
+    void rejectUserAccount(String userId, String reason);
 }

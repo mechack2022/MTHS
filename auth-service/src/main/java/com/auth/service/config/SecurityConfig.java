@@ -49,6 +49,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/verify-reset-password-code").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        
+                        // Profile creation token endpoints (no authentication required)
+                        .requestMatchers(HttpMethod.POST, "/api/auth/generate-profile-token").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/profile-creation-status/*").permitAll()
+                        
+                        // Public profile creation endpoints (no authentication required)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/patient/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/doctor/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/lab-technician/*").permitAll()
+                        
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/fileUpload/profile-image").permitAll()
 
                         // Permit other existing endpoints
