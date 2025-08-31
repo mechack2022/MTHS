@@ -1,11 +1,11 @@
 package com.auth.service.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "doctor_profiles")
@@ -49,6 +49,17 @@ public class DoctorProfile extends UserProfile {
 
     @Column(name = "profile_image_url")
     private String profileImageUrl;
+
+    // Appointment relationships
+    @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
+
+    // TODO: Add when Prescription and LabOrder entities are created
+    // @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<Prescription> prescriptions = new ArrayList<>();
+
+    // @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<LabOrder> labOrders = new ArrayList<>();
 
 
     @Override
