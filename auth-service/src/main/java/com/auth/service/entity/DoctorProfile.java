@@ -90,6 +90,6 @@ public class DoctorProfile extends UserProfile {
         return address;
     }
 
-    // Getters and setters...
+
 }
 

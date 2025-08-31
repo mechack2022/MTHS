@@ -7,6 +7,7 @@ import com.auth.service.exceptions.BadRequestException;
 import com.auth.service.exceptions.ResourceNotFoundException;
 import com.auth.service.mapper.AppointmentMapper;
 import com.auth.service.repository.*;
+import com.auth.service.service.AccountValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,12 +28,17 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final VitalSignsRepository vitalSignsRepository;
     private final AppointmentMapper appointmentMapper;
+    private final AccountValidationService accountValidationService;
 
     @Override
     @Transactional
     public AppointmentDTO createAppointment(CreateAppointmentRequest request) {
         log.info("Creating appointment for patient: {} with doctor: {}", 
                 request.getPatientProfileId(), request.getDoctorProfileId());
+
+        // Validate patient and doctor accounts
+        accountValidationService.validatePatientAccount(request.getPatientProfileId());
+        accountValidationService.validateDoctorAccount(request.getDoctorProfileId());
 
         // Validate scheduling conflicts
         LocalDateTime endTime = request.getScheduledDatetime().plusMinutes(request.getDurationMinutes());
