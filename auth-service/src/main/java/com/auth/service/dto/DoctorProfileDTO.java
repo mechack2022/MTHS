@@ -1,15 +1,19 @@
 package com.auth.service.dto;
 
+import com.auth.service.constants.Gender;
+import java.time.LocalDate;
+
 public class DoctorProfileDTO {
     private Long id;
     private String medicalLicenseNumber;
     private String specialization;
     private Integer yearsOfExperience;
-//    private String hospitalAffiliation;
-//    private Double consultationFee;
-//    private Boolean availableForConsultation;
-//    private String officeHours;
-//    private String medicalSchool;
+    private String experience;
+    private String bio;
+    private String practiceAddress;
+    private LocalDate dateOfBirth;
+    private Gender gender;
+    private String certificateUrl;
     private String boardCertifications;
     private String phoneNumber;
     private String address;
@@ -31,20 +35,23 @@ public class DoctorProfileDTO {
     public Integer getYearsOfExperience() { return yearsOfExperience; }
     public void setYearsOfExperience(Integer yearsOfExperience) { this.yearsOfExperience = yearsOfExperience; }
 
-//    public String getHospitalAffiliation() { return hospitalAffiliation; }
-//    public void setHospitalAffiliation(String hospitalAffiliation) { this.hospitalAffiliation = hospitalAffiliation; }
-//
-//    public Double getConsultationFee() { return consultationFee; }
-//    public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
-//
-//    public Boolean getAvailableForConsultation() { return availableForConsultation; }
-//    public void setAvailableForConsultation(Boolean availableForConsultation) { this.availableForConsultation = availableForConsultation; }
-//
-//    public String getOfficeHours() { return officeHours; }
-//    public void setOfficeHours(String officeHours) { this.officeHours = officeHours; }
-//
-//    public String getMedicalSchool() { return medicalSchool; }
-//    public void setMedicalSchool(String medicalSchool) { this.medicalSchool = medicalSchool; }
+    public String getExperience() { return experience; }
+    public void setExperience(String experience) { this.experience = experience; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getPracticeAddress() { return practiceAddress; }
+    public void setPracticeAddress(String practiceAddress) { this.practiceAddress = practiceAddress; }
+
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) { this.gender = gender; }
+
+    public String getCertificateUrl() { return certificateUrl; }
+    public void setCertificateUrl(String certificateUrl) { this.certificateUrl = certificateUrl; }
 
     public String getBoardCertifications() { return boardCertifications; }
     public void setBoardCertifications(String boardCertifications) { this.boardCertifications = boardCertifications; }

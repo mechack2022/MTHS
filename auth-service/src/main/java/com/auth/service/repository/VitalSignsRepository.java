@@ -13,13 +13,13 @@ import java.util.Optional;
 public interface VitalSignsRepository extends JpaRepository<VitalSigns, Long> {
     
     // Find vital signs by appointment
-    Optional<VitalSigns> findByAppointmentId(Long appointmentId);
+    Optional<VitalSigns> findByAppointment_Id(Long appointmentId);
     
     // Find vital signs by health status
     List<VitalSigns> findByHealthStatus(VitalSigns.HealthStatus healthStatus);
     
     // Find patient's vital signs history through appointments
-    @Query("SELECT v FROM VitalSigns v JOIN v.appointment a WHERE a.patientProfileId = :patientProfileId ORDER BY v.recordedAt DESC")
+    @Query("SELECT v FROM VitalSigns v JOIN v.appointment a WHERE a.patientProfile.id = :patientProfileId ORDER BY v.recordedAt DESC")
     List<VitalSigns> findPatientVitalSignsHistory(@Param("patientProfileId") Long patientProfileId);
     
     // Count vital signs by health status

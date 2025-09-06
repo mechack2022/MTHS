@@ -27,6 +27,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final VitalSignsRepository vitalSignsRepository;
+    private final PatientProfileRepository patientProfileRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
     private final AppointmentMapper appointmentMapper;
     private final AccountValidationService accountValidationService;
 
@@ -46,10 +48,16 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new BadRequestException("scheduling", "Doctor is not available at the requested time");
         }
 
+        // Get patient and doctor profiles
+        PatientProfile patientProfile = patientProfileRepository.findById(request.getPatientProfileId())
+                .orElseThrow(() -> new ResourceNotFoundException("PatientProfile", "id", request.getPatientProfileId()));
+        DoctorProfile doctorProfile = doctorProfileRepository.findById(request.getDoctorProfileId())
+                .orElseThrow(() -> new ResourceNotFoundException("DoctorProfile", "id", request.getDoctorProfileId()));
+
         // Create appointment
         Appointment appointment = new Appointment();
-        appointment.setPatientProfileId(request.getPatientProfileId());
-        appointment.setDoctorProfileId(request.getDoctorProfileId());
+        appointment.setPatientProfile(patientProfile);
+        appointment.setDoctorProfile(doctorProfile);
         appointment.setAppointmentType(request.getAppointmentType());
         appointment.setScheduledDatetime(request.getScheduledDatetime());
         appointment.setDurationMinutes(request.getDurationMinutes());
@@ -146,7 +154,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Create reschedule record
         AppointmentReschedule reschedule = new AppointmentReschedule();
-        reschedule.setAppointmentId(appointment.getId());
+        reschedule.setAppointment(appointment);
         reschedule.setOldDatetime(appointment.getScheduledDatetime());
         reschedule.setNewDatetime(request.getNewDatetime());
         reschedule.setReason(request.getReason());
@@ -253,7 +261,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentDTO> getPatientAppointments(Long patientProfileId) {
-        return appointmentRepository.findByPatientProfileIdOrderByScheduledDatetimeDesc(patientProfileId)
+        return appointmentRepository.findByPatientProfile_IdOrderByScheduledDatetimeDesc(patientProfileId)
                 .stream()
                 .map(appointmentMapper::mapToAppointmentDTO)
                 .collect(Collectors.toList());
@@ -262,7 +270,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentDTO> getDoctorAppointments(Long doctorProfileId) {
-        return appointmentRepository.findByDoctorProfileIdOrderByScheduledDatetimeDesc(doctorProfileId)
+        return appointmentRepository.findByDoctorProfile_IdOrderByScheduledDatetimeDesc(doctorProfileId)
                 .stream()
                 .map(appointmentMapper::mapToAppointmentDTO)
                 .collect(Collectors.toList());
@@ -271,14 +279,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public Page<AppointmentDTO> getPatientAppointments(Long patientProfileId, Pageable pageable) {
-        return appointmentRepository.findByPatientProfileIdOrderByScheduledDatetimeDesc(patientProfileId, pageable)
+        return appointmentRepository.findByPatientProfile_IdOrderByScheduledDatetimeDesc(patientProfileId, pageable)
                 .map(appointmentMapper::mapToAppointmentDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<AppointmentDTO> getDoctorAppointments(Long doctorProfileId, Pageable pageable) {
-        return appointmentRepository.findByDoctorProfileIdOrderByScheduledDatetimeDesc(doctorProfileId, pageable)
+        return appointmentRepository.findByDoctorProfile_IdOrderByScheduledDatetimeDesc(doctorProfileId, pageable)
                 .map(appointmentMapper::mapToAppointmentDTO);
     }
 
@@ -321,7 +329,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public VitalSignsDTO getAppointmentVitalSigns(Long appointmentId) {
-        return vitalSignsRepository.findByAppointmentId(appointmentId)
+        return vitalSignsRepository.findByAppointment_Id(appointmentId)
                 .map(appointmentMapper::mapToVitalSignsDTO)
                 .orElse(null);
     }
@@ -329,7 +337,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public VitalSignsDTO updateVitalSigns(Long appointmentId, VitalSignsDTO vitalSignsDTO) {
-        VitalSigns vitalSigns = vitalSignsRepository.findByAppointmentId(appointmentId)
+        VitalSigns vitalSigns = vitalSignsRepository.findByAppointment_Id(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("VitalSigns", "appointmentId", appointmentId));
 
         // Update vital signs
@@ -378,7 +386,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentDTO> getPatientAppointmentsByStatus(Long patientProfileId, AppointmentStatus status) {
-        return appointmentRepository.findByPatientProfileIdAndStatus(patientProfileId, status)
+        return appointmentRepository.findByPatientProfile_IdAndStatus(patientProfileId, status)
                 .stream()
                 .map(appointmentMapper::mapToAppointmentDTO)
                 .collect(Collectors.toList());
@@ -387,7 +395,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentDTO> getDoctorAppointmentsByStatus(Long doctorProfileId, AppointmentStatus status) {
-        return appointmentRepository.findByDoctorProfileIdAndStatus(doctorProfileId, status)
+        return appointmentRepository.findByDoctorProfile_IdAndStatus(doctorProfileId, status)
                 .stream()
                 .map(appointmentMapper::mapToAppointmentDTO)
                 .collect(Collectors.toList());
@@ -447,13 +455,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public Long countPatientAppointments(Long patientProfileId) {
-        return appointmentRepository.countByPatientProfileId(patientProfileId);
+        return appointmentRepository.countByPatientProfile_Id(patientProfileId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Long countDoctorAppointments(Long doctorProfileId) {
-        return appointmentRepository.countByDoctorProfileId(doctorProfileId);
+        return appointmentRepository.countByDoctorProfile_Id(doctorProfileId);
     }
 
     // Helper Methods
@@ -479,8 +487,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void createVitalSigns(Long appointmentId, CreateAppointmentRequest request) {
+        // Get the appointment object
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", appointmentId));
+                
         VitalSigns vitalSigns = new VitalSigns();
-        vitalSigns.setAppointmentId(appointmentId);
+        vitalSigns.setAppointment(appointment);
         vitalSigns.setBloodPressure(request.getBloodPressure());
         vitalSigns.setHeartRate(request.getHeartRate());
         vitalSigns.setTemperature(request.getTemperature());
@@ -493,11 +505,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void updateAppointmentVitalSigns(Long appointmentId, UpdateAppointmentRequest request) {
-        VitalSigns vitalSigns = vitalSignsRepository.findByAppointmentId(appointmentId)
+        VitalSigns vitalSigns = vitalSignsRepository.findByAppointment_Id(appointmentId)
                 .orElse(new VitalSigns());
 
         if (vitalSigns.getId() == null) {
-            vitalSigns.setAppointmentId(appointmentId);
+            // Get the appointment object for new vital signs
+            Appointment appointment = appointmentRepository.findById(appointmentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", appointmentId));
+            vitalSigns.setAppointment(appointment);
         }
 
         if (request.getBloodPressure() != null) {

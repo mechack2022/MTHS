@@ -17,23 +17,23 @@ import java.util.Optional;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     
     // Find by patient
-    List<Appointment> findByPatientProfileIdOrderByScheduledDatetimeDesc(Long patientProfileId);
+    List<Appointment> findByPatientProfile_IdOrderByScheduledDatetimeDesc(Long patientProfileId);
     
-    Page<Appointment> findByPatientProfileIdOrderByScheduledDatetimeDesc(Long patientProfileId, Pageable pageable);
+    Page<Appointment> findByPatientProfile_IdOrderByScheduledDatetimeDesc(Long patientProfileId, Pageable pageable);
     
     // Find by doctor
-    List<Appointment> findByDoctorProfileIdOrderByScheduledDatetimeDesc(Long doctorProfileId);
+    List<Appointment> findByDoctorProfile_IdOrderByScheduledDatetimeDesc(Long doctorProfileId);
     
-    Page<Appointment> findByDoctorProfileIdOrderByScheduledDatetimeDesc(Long doctorProfileId, Pageable pageable);
+    Page<Appointment> findByDoctorProfile_IdOrderByScheduledDatetimeDesc(Long doctorProfileId, Pageable pageable);
     
     // Find by status
     List<Appointment> findByStatus(AppointmentStatus status);
     
     // Find by patient and status
-    List<Appointment> findByPatientProfileIdAndStatus(Long patientProfileId, AppointmentStatus status);
+    List<Appointment> findByPatientProfile_IdAndStatus(Long patientProfileId, AppointmentStatus status);
     
     // Find by doctor and status
-    List<Appointment> findByDoctorProfileIdAndStatus(Long doctorProfileId, AppointmentStatus status);
+    List<Appointment> findByDoctorProfile_IdAndStatus(Long doctorProfileId, AppointmentStatus status);
     
     // Find appointments by date range
     @Query("SELECT a FROM Appointment a WHERE a.scheduledDatetime BETWEEN :startDate AND :endDate ORDER BY a.scheduledDatetime ASC")
@@ -41,7 +41,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                                                 @Param("endDate") LocalDateTime endDate);
     
     // Find doctor's appointments for a specific date
-    @Query("SELECT a FROM Appointment a WHERE a.doctorProfileId = :doctorProfileId " +
+    @Query("SELECT a FROM Appointment a WHERE a.doctorProfile.id = :doctorProfileId " +
            "AND DATE(a.scheduledDatetime) = DATE(:date) " +
            "AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') " +
            "ORDER BY a.scheduledDatetime ASC")
@@ -49,7 +49,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                                                    @Param("date") LocalDateTime date);
     
     // Find patient's upcoming appointments
-    @Query("SELECT a FROM Appointment a WHERE a.patientProfileId = :patientProfileId " +
+    @Query("SELECT a FROM Appointment a WHERE a.patientProfile.id = :patientProfileId " +
            "AND a.scheduledDatetime > :currentDate " +
            "AND a.status IN ('SCHEDULED', 'CONFIRMED') " +
            "ORDER BY a.scheduledDatetime ASC")
@@ -57,7 +57,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                                                      @Param("currentDate") LocalDateTime currentDate);
     
     // Find doctor's upcoming appointments
-    @Query("SELECT a FROM Appointment a WHERE a.doctorProfileId = :doctorProfileId " +
+    @Query("SELECT a FROM Appointment a WHERE a.doctorProfile.id = :doctorProfileId " +
            "AND a.scheduledDatetime > :currentDate " +
            "AND a.status IN ('SCHEDULED', 'CONFIRMED') " +
            "ORDER BY a.scheduledDatetime ASC")
@@ -65,7 +65,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                                                     @Param("currentDate") LocalDateTime currentDate);
     
     // Check for conflicting appointments
-    @Query("SELECT a FROM Appointment a WHERE a.doctorProfileId = :doctorProfileId " +
+    @Query("SELECT a FROM Appointment a WHERE a.doctorProfile.id = :doctorProfileId " +
            "AND a.scheduledDatetime BETWEEN :startTime AND :endTime " +
            "AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')")
     List<Appointment> findConflictingAppointments(@Param("doctorProfileId") Long doctorProfileId,
@@ -82,14 +82,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Long countByStatus(@Param("status") AppointmentStatus status);
     
     // Count patient's appointments
-    Long countByPatientProfileId(Long patientProfileId);
+    Long countByPatientProfile_Id(Long patientProfileId);
     
     // Count doctor's appointments
-    Long countByDoctorProfileId(Long doctorProfileId);
+    Long countByDoctorProfile_Id(Long doctorProfileId);
     
     // Find appointments with vital signs having severe health status
     @Query("SELECT a FROM Appointment a WHERE a.id IN " +
-           "(SELECT v.appointmentId FROM VitalSigns v WHERE v.healthStatus = 'SEVERE')")
+           "(SELECT v.appointment.id FROM VitalSigns v WHERE v.healthStatus = 'SEVERE')")
     List<Appointment> findAppointmentsWithSevereVitals();
     
     // Monthly appointments report

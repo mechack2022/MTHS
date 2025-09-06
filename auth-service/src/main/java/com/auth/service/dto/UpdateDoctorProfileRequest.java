@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.URL;
+
+import java.time.LocalDate;
 @Setter
 @Getter
 public class UpdateDoctorProfileRequest {
@@ -17,19 +19,22 @@ public class UpdateDoctorProfileRequest {
     @Max(value = 60, message = "Years of experience cannot exceed 60")
     private Integer yearsOfExperience;
 
-    @Size(max = 100, message = "Hospital affiliation must be less than 100 characters")
-    private String hospitalAffiliation;
+    @Size(max = 1000, message = "Experience must be less than 1000 characters")
+    private String experience;
 
-//    @DecimalMin(value = "0.0", message = "Consultation fee cannot be negative")
-//    private Double consultationFee;
+    @Size(max = 2000, message = "Bio must be less than 2000 characters")
+    private String bio;
 
-    private Boolean availableForConsultation;
+    @Size(max = 500, message = "Practice address must be less than 500 characters")
+    private String practiceAddress;
 
-    @Size(max = 100, message = "Office hours must be less than 100 characters")
-    private String officeHours;
+    @Past(message = "Date of birth must be in the past")
+    private LocalDate dateOfBirth;
 
-    @Size(max = 100, message = "Medical school name must be less than 100 characters")
-    private String medicalSchool;
+    private Gender gender;
+
+    @URL(message = "Certificate URL must be valid")
+    private String certificateUrl;
 
     @Size(max = 500, message = "Board certifications must be less than 500 characters")
     private String boardCertifications;

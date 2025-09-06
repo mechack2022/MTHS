@@ -4,10 +4,22 @@ import com.auth.service.dto.AppointmentDTO;
 import com.auth.service.dto.VitalSignsDTO;
 import com.auth.service.entity.Appointment;
 import com.auth.service.entity.VitalSigns;
+import com.auth.service.entity.PatientProfile;
+import com.auth.service.entity.DoctorProfile;
+import com.auth.service.repository.PatientProfileRepository;
+import com.auth.service.repository.DoctorProfileRepository;
+import com.auth.service.repository.AppointmentRepository;
+import com.auth.service.exceptions.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class AppointmentMapper {
+
+    private final PatientProfileRepository patientProfileRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
+    private final AppointmentRepository appointmentRepository;
 
     public AppointmentDTO mapToAppointmentDTO(Appointment appointment) {
         if (appointment == null) {
@@ -90,8 +102,20 @@ public class AppointmentMapper {
 
         Appointment appointment = new Appointment();
         // ID is auto-generated, don't set it manually
-        appointment.setPatientProfileId(dto.getPatientProfileId());
-        appointment.setDoctorProfileId(dto.getDoctorProfileId());
+        
+        // Set profile relationships if IDs are provided
+        if (dto.getPatientProfileId() != null) {
+            PatientProfile patientProfile = patientProfileRepository.findById(dto.getPatientProfileId())
+                    .orElseThrow(() -> new ResourceNotFoundException("PatientProfile", "id", dto.getPatientProfileId()));
+            appointment.setPatientProfile(patientProfile);
+        }
+        
+        if (dto.getDoctorProfileId() != null) {
+            DoctorProfile doctorProfile = doctorProfileRepository.findById(dto.getDoctorProfileId())
+                    .orElseThrow(() -> new ResourceNotFoundException("DoctorProfile", "id", dto.getDoctorProfileId()));
+            appointment.setDoctorProfile(doctorProfile);
+        }
+        
         appointment.setAppointmentType(dto.getAppointmentType());
         appointment.setScheduledDatetime(dto.getScheduledDatetime());
         appointment.setStatus(dto.getStatus());
@@ -116,7 +140,14 @@ public class AppointmentMapper {
 
         VitalSigns vitalSigns = new VitalSigns();
         // ID is auto-generated, don't set it manually
-        vitalSigns.setAppointmentId(dto.getAppointmentId());
+        
+        // Set appointment relationship if ID is provided
+        if (dto.getAppointmentId() != null) {
+            Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", dto.getAppointmentId()));
+            vitalSigns.setAppointment(appointment);
+        }
+        
         vitalSigns.setBloodPressure(dto.getBloodPressure());
         vitalSigns.setHeartRate(dto.getHeartRate());
         vitalSigns.setTemperature(dto.getTemperature());

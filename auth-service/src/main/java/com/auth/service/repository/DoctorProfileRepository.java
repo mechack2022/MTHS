@@ -22,8 +22,6 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, Lo
     
     boolean existsByMedicalLicenseNumber(String medicalLicenseNumber);
     
-    List<DoctorProfile> findByAvailableForConsultation(Boolean availableForConsultation);
-    
-    @Query("SELECT dp FROM DoctorProfile dp JOIN FETCH dp.user u WHERE u.isActive = true AND u.accountVerified = true AND dp.availableForConsultation = true")
+    @Query("SELECT dp FROM DoctorProfile dp JOIN FETCH dp.user u WHERE u.isActive = true AND u.accountVerified = true")
     List<DoctorProfile> findAvailableVerifiedDoctors();
 }
