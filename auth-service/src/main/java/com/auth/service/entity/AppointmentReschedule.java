@@ -14,8 +14,8 @@ public class AppointmentReschedule extends BaseEntity {
     // Primary key inherited from BaseEntity as 'id'
     // Using 'id' field from BaseEntity instead of rescheduleId
 
-    @Column(name = "appointment_id", nullable = false, insertable = false, updatable = false)
-    private Long appointmentId;
+    // Appointment ID is handled through relationship below
+    // @Column(name = "appointment_id") - handled by @JoinColumn
 
     @Column(name = "old_datetime", nullable = false)
     private LocalDateTime oldDatetime;
@@ -49,5 +49,10 @@ public class AppointmentReschedule extends BaseEntity {
         public String getDescription() {
             return description;
         }
+    }
+
+    // Helper method for appointment ID (delegate to relationship)
+    public Long getAppointmentId() {
+        return appointment != null ? appointment.getId() : null;
     }
 }

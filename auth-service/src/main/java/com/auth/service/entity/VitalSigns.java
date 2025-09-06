@@ -14,8 +14,8 @@ public class VitalSigns extends BaseEntity {
     // Primary key inherited from BaseEntity as 'id'
     // Using 'id' field from BaseEntity instead of vitalId
 
-    @Column(name = "appointment_id", nullable = false, insertable = false, updatable = false)
-    private Long appointmentId;
+    // Appointment ID is handled through relationship below
+    // @Column(name = "appointment_id") - handled by @JoinColumn
 
     @Column(name = "blood_pressure")
     private String bloodPressure; // Format: "123/90"
@@ -239,5 +239,10 @@ public class VitalSigns extends BaseEntity {
         public String getColor() {
             return color;
         }
+    }
+
+    // Helper method for appointment ID (delegate to relationship)
+    public Long getAppointmentId() {
+        return appointment != null ? appointment.getId() : null;
     }
 }

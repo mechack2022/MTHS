@@ -17,11 +17,9 @@ public class Appointment extends BaseEntity {
     // Primary key inherited from BaseEntity as 'id'
     // Using 'id' field from BaseEntity instead of appointmentId
 
-    @Column(name = "patient_profile_id", nullable = false, insertable = false, updatable = false)
-    private Long patientProfileId;
-
-    @Column(name = "doctor_profile_id", nullable = false, insertable = false, updatable = false)
-    private Long doctorProfileId;
+    // Profile IDs are handled through relationships below
+    // @Column(name = "patient_profile_id") - handled by @JoinColumn
+    // @Column(name = "doctor_profile_id") - handled by @JoinColumn
 
     @Enumerated(EnumType.STRING)
     @Column(name = "appointment_type")
@@ -101,7 +99,16 @@ public class Appointment extends BaseEntity {
         }
     }
 
-    // Helper methods
+    // Helper methods for profile IDs (delegate to relationships)
+    public Long getPatientProfileId() {
+        return patientProfile != null ? patientProfile.getId() : null;
+    }
+    
+    public Long getDoctorProfileId() {
+        return doctorProfile != null ? doctorProfile.getId() : null;
+    }
+
+    // Helper methods for status
     public boolean isScheduled() {
         return status == AppointmentStatus.SCHEDULED;
     }
