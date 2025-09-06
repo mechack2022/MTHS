@@ -1,11 +1,13 @@
 package com.auth.service.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.auth.service.constants.Gender;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "doctor_profiles")
@@ -23,20 +25,24 @@ public class DoctorProfile extends UserProfile {
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
 
-    @Column(name = "hospital_affiliation")
-    private String hospitalAffiliation;
+    @Column(name = "experience", columnDefinition = "TEXT")
+    private String experience; // Short note about doctor's experience
 
-    @Column(name = "consultation_fee")
-    private Double consultationFee;
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
 
-    @Column(name = "is_available_for_consultation")
-    private Boolean availableForConsultation = true;
+    @Column(name = "practice_address")
+    private String practiceAddress;
 
-    @Column(name = "office_hours")
-    private String officeHours;
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
-    @Column(name = "medical_school")
-    private String medicalSchool;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private Gender gender;
+
+    @Column(name = "certificate_url")
+    private String certificateUrl;
 
     @Column(name = "board_certifications")
     private String boardCertifications;
@@ -50,13 +56,26 @@ public class DoctorProfile extends UserProfile {
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
+    // Appointment relationships
+    @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
+
+    // TODO: Add when Prescription and LabOrder entities are created
+    // @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<Prescription> prescriptions = new ArrayList<>();
+
+    // @OneToMany(mappedBy = "doctorProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<LabOrder> labOrders = new ArrayList<>();
+
 
     @Override
     public boolean isProfileComplete() {
         return medicalLicenseNumber != null &&
                 specialization != null &&
                 getPhoneNumber() != null &&
-                hospitalAffiliation != null;
+                practiceAddress != null &&
+                dateOfBirth != null &&
+                gender != null;
     }
 
     // Business logic methods
@@ -66,7 +85,7 @@ public class DoctorProfile extends UserProfile {
     }
 
     public boolean canTakeNewPatients() {
-        return availableForConsultation && getUser().getIsActive();
+        return getUser().getIsActive() && isProfileComplete();
     }
 
     @Override
@@ -76,9 +95,9 @@ public class DoctorProfile extends UserProfile {
 
     @Override
     public String getAddress() {
-        return address;
+        return practiceAddress != null ? practiceAddress : address;
     }
 
-    // Getters and setters...
+
 }
 

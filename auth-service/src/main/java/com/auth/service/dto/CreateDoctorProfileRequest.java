@@ -4,6 +4,8 @@ import com.auth.service.constants.Gender;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.URL;
 
+import java.time.LocalDate;
+
 public class CreateDoctorProfileRequest {
 
     @NotBlank(message = "Medical license number is required")
@@ -18,20 +20,25 @@ public class CreateDoctorProfileRequest {
     @Max(value = 60, message = "Years of experience cannot exceed 60")
     private Integer yearsOfExperience;
 
-    @NotBlank(message = "Hospital affiliation is required")
-    @Size(max = 100, message = "Hospital affiliation must be less than 100 characters")
-    private String hospitalAffiliation;
+    @Size(max = 1000, message = "Experience must be less than 1000 characters")
+    private String experience;
 
-    @DecimalMin(value = "0.0", message = "Consultation fee cannot be negative")
-    private Double consultationFee;
+    @Size(max = 2000, message = "Bio must be less than 2000 characters")
+    private String bio;
 
-    private Boolean availableForConsultation = true;
+    @NotBlank(message = "Practice address is required")
+    @Size(max = 500, message = "Practice address must be less than 500 characters")
+    private String practiceAddress;
 
-    @Size(max = 100, message = "Office hours must be less than 100 characters")
-    private String officeHours;
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be in the past")
+    private LocalDate dateOfBirth;
 
-    @Size(max = 100, message = "Medical school name must be less than 100 characters")
-    private String medicalSchool;
+    @NotNull(message = "Gender is required")
+    private Gender gender;
+
+    @URL(message = "Certificate URL must be valid")
+    private String certificateUrl;
 
     @Size(max = 500, message = "Board certifications must be less than 500 characters")
     private String boardCertifications;
@@ -40,7 +47,6 @@ public class CreateDoctorProfileRequest {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Invalid phone number format")
     private String phoneNumber;
 
-    @NotBlank(message = "Address is required")
     @Size(max = 500, message = "Address must be less than 500 characters")
     private String address;
 
@@ -57,20 +63,23 @@ public class CreateDoctorProfileRequest {
     public Integer getYearsOfExperience() { return yearsOfExperience; }
     public void setYearsOfExperience(Integer yearsOfExperience) { this.yearsOfExperience = yearsOfExperience; }
 
-    public String getHospitalAffiliation() { return hospitalAffiliation; }
-    public void setHospitalAffiliation(String hospitalAffiliation) { this.hospitalAffiliation = hospitalAffiliation; }
+    public String getExperience() { return experience; }
+    public void setExperience(String experience) { this.experience = experience; }
 
-    public Double getConsultationFee() { return consultationFee; }
-    public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 
-    public Boolean getAvailableForConsultation() { return availableForConsultation; }
-    public void setAvailableForConsultation(Boolean availableForConsultation) { this.availableForConsultation = availableForConsultation; }
+    public String getPracticeAddress() { return practiceAddress; }
+    public void setPracticeAddress(String practiceAddress) { this.practiceAddress = practiceAddress; }
 
-    public String getOfficeHours() { return officeHours; }
-    public void setOfficeHours(String officeHours) { this.officeHours = officeHours; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
-    public String getMedicalSchool() { return medicalSchool; }
-    public void setMedicalSchool(String medicalSchool) { this.medicalSchool = medicalSchool; }
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) { this.gender = gender; }
+
+    public String getCertificateUrl() { return certificateUrl; }
+    public void setCertificateUrl(String certificateUrl) { this.certificateUrl = certificateUrl; }
 
     public String getBoardCertifications() { return boardCertifications; }
     public void setBoardCertifications(String boardCertifications) { this.boardCertifications = boardCertifications; }

@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "patient_profiles")
@@ -46,6 +48,17 @@ public class PatientProfile extends UserProfile {
 
     @Column(name = "profile_image_url")
     private String profileImageUrl;
+
+    // Appointment relationships
+    @OneToMany(mappedBy = "patientProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
+
+    // TODO: Add when MedicalHistory and Notification entities are created
+    // @OneToMany(mappedBy = "patientProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<MedicalHistory> medicalHistories = new ArrayList<>();
+
+    // @OneToMany(mappedBy = "patientProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<Notification> notifications = new ArrayList<>();
 
     @Override
     public boolean isProfileComplete() {

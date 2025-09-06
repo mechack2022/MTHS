@@ -9,16 +9,19 @@ import com.auth.service.mapper.LabTechnicianMapper;
 import com.auth.service.repository.UserRepository;
 import com.auth.service.utils.ProfileCompletionStatus;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Transactional
+@Slf4j
 public class UserProfileServiceImpl implements UserProfileService {
 
     @Autowired
@@ -32,6 +35,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Autowired
     private LabTechnicianMapper labTechnicianMapper;
+
+    @Autowired
+    private UserAuthService userAuthService;
 
     // ========================================================================
     // PROFILE CREATION METHODS
@@ -73,8 +79,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save user with profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile is complete and upgrade role if necessary
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return profileMapper.toPatientProfileDTO(savedUser.getPatientProfile());
     }
@@ -99,14 +105,12 @@ public class UserProfileServiceImpl implements UserProfileService {
         doctorProfile.setMedicalLicenseNumber(request.getMedicalLicenseNumber());
         doctorProfile.setSpecialization(request.getSpecialization());
         doctorProfile.setYearsOfExperience(request.getYearsOfExperience());
-        doctorProfile.setHospitalAffiliation(request.getHospitalAffiliation());
-        doctorProfile.setConsultationFee(request.getConsultationFee());
-        doctorProfile.setAvailableForConsultation(
-                request.getAvailableForConsultation() != null ?
-                        request.getAvailableForConsultation() : true
-        );
-        doctorProfile.setOfficeHours(request.getOfficeHours());
-        doctorProfile.setMedicalSchool(request.getMedicalSchool());
+        doctorProfile.setExperience(request.getExperience());
+        doctorProfile.setBio(request.getBio());
+        doctorProfile.setPracticeAddress(request.getPracticeAddress());
+        doctorProfile.setDateOfBirth(request.getDateOfBirth());
+        doctorProfile.setGender(request.getGender());
+        doctorProfile.setCertificateUrl(request.getCertificateUrl());
         doctorProfile.setBoardCertifications(request.getBoardCertifications());
 
         // Set common profile fields
@@ -120,8 +124,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save user with profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile is complete and upgrade role if necessary
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return profileMapper.toDoctorProfileDTO(savedUser.getDoctorProfile());
     }
@@ -145,8 +149,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save user with profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile is complete and upgrade role if necessary
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return labTechnicianMapper.toDTO(savedUser.getLabTechnicianProfile());
     }
@@ -174,8 +178,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save updated profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile completion status changed
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return profileMapper.toPatientProfileDTO(savedUser.getPatientProfile());
     }
@@ -199,8 +203,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save updated profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile completion status changed
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return profileMapper.toDoctorProfileDTO(savedUser.getDoctorProfile());
     }
@@ -224,8 +228,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         // Save updated profile
         User savedUser = userRepository.save(user);
 
-        // Check if profile completion status changed
-        checkAndUpgradeUserRole(savedUser);
+        // Notify AuthService about profile completion change (for tracking only)
+        notifyProfileCompletionChange(savedUser);
 
         return labTechnicianMapper.toDTO(savedUser.getLabTechnicianProfile());
     }
@@ -534,20 +538,23 @@ public class UserProfileServiceImpl implements UserProfileService {
         if (request.getYearsOfExperience() != null) {
             profile.setYearsOfExperience(request.getYearsOfExperience());
         }
-        if (request.getHospitalAffiliation() != null) {
-            profile.setHospitalAffiliation(request.getHospitalAffiliation());
+        if (request.getExperience() != null) {
+            profile.setExperience(request.getExperience());
         }
-//        if (request.getConsultationFee() != null) {
-//            profile.setConsultationFee(request.getConsultationFee());
-//        }
-        if (request.getAvailableForConsultation() != null) {
-            profile.setAvailableForConsultation(request.getAvailableForConsultation());
+        if (request.getBio() != null) {
+            profile.setBio(request.getBio());
         }
-        if (request.getOfficeHours() != null) {
-            profile.setOfficeHours(request.getOfficeHours());
+        if (request.getPracticeAddress() != null) {
+            profile.setPracticeAddress(request.getPracticeAddress());
         }
-        if (request.getMedicalSchool() != null) {
-            profile.setMedicalSchool(request.getMedicalSchool());
+        if (request.getDateOfBirth() != null) {
+            profile.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getGender() != null) {
+            profile.setGender(request.getGender());
+        }
+        if (request.getCertificateUrl() != null) {
+            profile.setCertificateUrl(request.getCertificateUrl());
         }
         if (request.getBoardCertifications() != null) {
             profile.setBoardCertifications(request.getBoardCertifications());
@@ -567,24 +574,13 @@ public class UserProfileServiceImpl implements UserProfileService {
     // ROLE MANAGEMENT METHODS
     // ========================================================================
 
-    private void checkAndUpgradeUserRole(User user) {
-        if (!user.getMailVerified()) {
-            return; // Email must be verified first
-        }
-
-        UserProfile primaryProfile = user.getPrimaryProfile();
-        if (primaryProfile != null && primaryProfile.isProfileComplete()) {
-            // Profile is complete, upgrade from PENDING role
-            Role.RoleName newRole = determineRoleFromAccountType(user.getAccountType());
-            if (newRole != null && !user.getAccountVerified()) {
-                // Remove PENDING role and assign appropriate role
-                rolePermissionService.removeRoleFromUser(user.getId(), Role.RoleName.PENDING);
-                rolePermissionService.assignRoleToUser(user.getId(), newRole);
-
-                // Mark account as fully verified
-                user.setAccountVerified(true);
-            }
-        }
+    /**
+     * Notify AuthService about profile completion changes without auto-verification
+     */
+    private void notifyProfileCompletionChange(User user) {
+        // Delegate to UserAuthService which handles profile completion tracking
+        // without automatic account verification
+        userAuthService.handleProfileCompletionChange(user.getUuid());
     }
 
     private void downgradeUserRole(User user) {
@@ -642,8 +638,14 @@ public class UserProfileServiceImpl implements UserProfileService {
             if (doctor.getSpecialization() == null || doctor.getSpecialization().trim().isEmpty()) {
                 missingFields.add("Specialization");
             }
-            if (doctor.getHospitalAffiliation() == null || doctor.getHospitalAffiliation().trim().isEmpty()) {
-                missingFields.add("Hospital Affiliation");
+            if (doctor.getPracticeAddress() == null || doctor.getPracticeAddress().trim().isEmpty()) {
+                missingFields.add("Practice Address");
+            }
+            if (doctor.getDateOfBirth() == null) {
+                missingFields.add("Date of Birth");
+            }
+            if (doctor.getGender() == null) {
+                missingFields.add("Gender");
             }
         }
 
@@ -657,25 +659,6 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with UUID: " + userUuid));
     }
 
-    // ========================================================================
-    // SUPPORTING CLASSES
-    // ========================================================================
-
-//    public static class ProfileCompletionStatus {
-//        private final boolean complete;
-//        private final String message;
-//        private final List<String> missingFields;
-//
-//        public ProfileCompletionStatus(boolean complete, String message, List<String> missingFields) {
-//            this.complete = complete;
-//            this.message = message;
-//            this.missingFields = missingFields;
-//        }
-//
-//        public boolean isComplete() { return complete; }
-//        public String getMessage() { return message; }
-//        public List<String> getMissingFields() { return missingFields; }
-//    }
 
     public enum ProfileType {
         PATIENT, DOCTOR, ADMIN, PHARMACY_OWNER

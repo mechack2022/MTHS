@@ -67,6 +67,9 @@ public class UserAuthServiceImpl implements UserAuthService {
     @Autowired
     private RolePermissionService rolePermissionService;
 
+    @Autowired
+    private AccountValidationService accountValidationService;
+
     // ========================================================================
     // USER REGISTRATION & AUTHENTICATION - CORE RESPONSIBILITY
     // ========================================================================
@@ -140,6 +143,9 @@ public class UserAuthServiceImpl implements UserAuthService {
         if (!user.getAccountVerified()) {
             throw new BadRequestException("account", "Account not verified by administrator. Please wait for admin approval.");
         }
+
+        // Check if user has required profile based on account type
+        accountValidationService.validateUserProfileRequirementForLogin(user);
 
         // Generate tokens
         String newAccessToken = jwtTokenProvider.generateToken(username);
@@ -646,6 +652,9 @@ public class UserAuthServiceImpl implements UserAuthService {
             // Allow re-verification of rejected accounts
             log.info("Re-verifying previously rejected account: {}", userId);
         }
+        
+        // Validate that user has complete profile before verification
+        accountValidationService.validateProfileForAdminVerification(user);
         
         // Verify account
         user.setAccountVerified(true);

@@ -216,6 +216,8 @@ public class User extends BaseEntity {
         PHARMACY,
         HOSPITAL,
         INSURANCE,
-        LAB_TECHNICIAN
+        LAB_TECHNICIAN,
+        SUPER_ADMIN,
+
     }
 }
