@@ -53,6 +53,7 @@ public class SecurityConfig {
                         // Profile creation token endpoints (no authentication required)
                         .requestMatchers(HttpMethod.POST, "/api/auth/generate-profile-token").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/profile-creation-status/*").permitAll()
+
                         
                         // Public profile creation endpoints (no authentication required)
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/patient/*").permitAll()
@@ -79,10 +80,47 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Configure based on your needs
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // Frontend origins - Update these based on your actual frontend URLs
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:3000",      // React development server
+            "http://localhost:5173",      // Vite development server  
+            "http://localhost:8080",      // Vue.js development server
+            "http://localhost:4200",      // Angular development server
+            "https://your-frontend-domain.com",  // Production frontend domain
+            "https://*.netlify.app",      // Netlify deployments
+            "https://*.vercel.app",       // Vercel deployments
+            "https://*.herokuapp.com"   // Heroku deployments
+                // Allow all origins (remove in production)
+        ));
+        // HTTP methods that frontend can use
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+        ));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type", 
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "Profile-Creation-Token",
+            "X-API-Key",
+            "Cache-Control"
+        ));
+        
+        // Headers that frontend can read from response
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Disposition",
+            "X-Total-Count",
+            "X-Page-Number",
+            "X-Page-Size",
+            "X-Total-Pages"
+        ));
+        
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight response for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
