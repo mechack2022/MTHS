@@ -105,6 +105,13 @@ public class FileUploadService {
                     throw new IllegalArgumentException("Invalid document type. Only PDF or DOC allowed.");
                 }
                 break;
+                
+            case CONSULTATION_ATTACHMENT:
+                // Allow both images and documents for consultation attachments
+                if (!isValidImageType(contentType) && !isValidDocumentType(contentType) && !isValidMediaType(contentType)) {
+                    throw new IllegalArgumentException("Invalid file type. Only images, documents, and media files allowed for consultation attachments.");
+                }
+                break;
 
             default:
                 throw new IllegalArgumentException("Unknown category");
@@ -129,6 +136,16 @@ public class FileUploadService {
                 contentType.equals("application/pdf") ||
                         contentType.equals("application/msword") ||
                         contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        );
+    }
+
+    private boolean isValidMediaType(String contentType) {
+        return contentType != null && (
+                contentType.startsWith("video/") ||
+                contentType.startsWith("audio/") ||
+                contentType.equals("application/zip") ||
+                contentType.equals("application/x-zip-compressed") ||
+                contentType.equals("text/plain")
         );
     }
 
