@@ -22,14 +22,27 @@ Our mission is to make healthcare:
 
 With MTHS, every user — whether a patient, a provider, or a hospital — becomes part of a **trusted health team**, where information flows seamlessly, communication is transparent, and care is continuous.
 
+## Architecture
+
+MTHS is built as a **monolithic application** for:
+- Simplified deployment and development
+- Better performance for integrated features
+- Easier debugging and testing
+- Lower operational complexity
+
+The application follows a **feature-based package structure** organizing code by business domains rather than technical layers.
+
 ## Technology Stack
 
 - **Backend**: Spring Boot 3.5.3 with Java 21
 - **Database**: PostgreSQL
-- **Authentication**: JWT-based authentication
-- **File Storage**: MinIO
-- **Email**: MailHog (development)
-- **Security**: Spring Security with role-based access control
+- **Authentication**: JWT-based authentication with Spring Security
+- **File Storage**: MinIO object storage
+- **Email**: Spring Mail with MailHog (development)
+- **Real-time Communication**: WebSockets (SockJS + STOMP)
+- **Security**: Role-based access control (RBAC) with permissions
+- **Validation**: Jakarta Bean Validation
+- **Mapping**: MapStruct for DTO conversions
 
 ## Getting Started
 
