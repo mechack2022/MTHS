@@ -78,9 +78,9 @@ payment:
   consultation-fee: ${CONSULTATION_FEE:10000.00} # Flat fee in NGN
   currency: ${PAYMENT_CURRENCY:NGN}
   paystack:
-    secret-key: ${PAYSTACK_SECRET_KEY:sk_test_7a311030bf2d20595a658095812503eb461b9542}
-    public-key: ${PAYSTACK_PUBLIC_KEY:pk_test_c72776b1d6ba46e08fe8762b23226aa3d4e8ccea}
-    webhook-secret: ${PAYSTACK_WEBHOOK_SECRET:sk_test_7a311030bf2d20595a658095812503eb461b9542}
+    secret-key: ${PAYSTACK_SECRET_KEY}
+    public-key: ${PAYSTACK_PUBLIC_KEY}
+    webhook-secret: ${PAYSTACK_WEBHOOK_SECRET}
     base-url: https://api.paystack.co
     callback-url: ${PAYSTACK_CALLBACK_URL:http://localhost:3000/payment/callback}
 
