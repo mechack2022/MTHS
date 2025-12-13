@@ -59,8 +59,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/patient/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/doctor/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/lab-technician/*").permitAll()
-                        
+
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/fileUpload/profile-image").permitAll()
+
+                        // Webhook endpoints (no authentication required - verified via signature)
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/webhooks/**").permitAll()
 
                         // Permit other existing endpoints
                         .requestMatchers("/users/verify").permitAll()

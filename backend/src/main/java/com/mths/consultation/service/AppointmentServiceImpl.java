@@ -46,12 +46,28 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentDTO createAppointment(CreateAppointmentRequest request) {
-        log.info("Creating appointment for patient: {} with doctor: {}", 
+        log.info("Creating appointment for patient: {} with doctor: {}",
                 request.getPatientProfileId(), request.getDoctorProfileId());
 
         // Validate patient and doctor accounts
         accountValidationService.validatePatientAccount(request.getPatientProfileId());
         accountValidationService.validateDoctorAccount(request.getDoctorProfileId());
+
+        // CRITICAL: Check vital signs for severe conditions BEFORE booking
+        VitalSigns.HealthStatus healthStatus = assessVitalSignsFromRequest(request);
+        if (healthStatus == VitalSigns.HealthStatus.SEVERE) {
+            log.error("SEVERE health condition detected for patient: {} - BP: {}, HR: {}, Temp: {}",
+                    request.getPatientProfileId(), request.getBloodPressure(),
+                    request.getHeartRate(), request.getTemperature());
+            throw new BadRequestException("critical_condition",
+                    "CRITICAL: Your vital signs indicate a severe condition. " +
+                    "Please seek immediate emergency medical attention or call emergency services. " +
+                    "Online booking is not appropriate for your current condition.");
+        } else if (healthStatus == VitalSigns.HealthStatus.MODERATE) {
+            log.warn("MODERATE health condition detected for patient: {} - Appointment will be flagged as urgent",
+                    request.getPatientProfileId());
+            // Allow booking but log as moderate - doctor will be notified
+        }
 
         // Validate scheduling conflicts
         LocalDateTime endTime = request.getScheduledDatetime().plusMinutes(request.getDurationMinutes());
@@ -501,7 +517,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Get the appointment object
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", appointmentId));
-                
+
         VitalSigns vitalSigns = new VitalSigns();
         vitalSigns.setAppointment(appointment);
         vitalSigns.setBloodPressure(request.getBloodPressure());
@@ -510,9 +526,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         vitalSigns.setWeight(request.getWeight());
         vitalSigns.setHeight(request.getHeight());
         vitalSigns.setNotes(request.getVitalSignsNotes());
-        vitalSigns.setRecordedBy("patient"); // Or get from security context
+        vitalSigns.setRecordedBy("patient_self_reported"); // Patient-submitted during booking
 
-        vitalSignsRepository.save(vitalSigns);
+        VitalSigns savedVitalSigns = vitalSignsRepository.save(vitalSigns);
+
+        log.info("Created vital signs for appointment {} - Status: {}, RecordedBy: patient",
+                appointmentId, savedVitalSigns.getHealthStatus());
     }
 
     private void updateAppointmentVitalSigns(Long appointmentId, UpdateAppointmentRequest request) {
@@ -546,5 +565,92 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         vitalSignsRepository.save(vitalSigns);
+    }
+
+    /**
+     * Assess health status from vital signs in booking request
+     * Creates temporary VitalSigns object to leverage built-in assessment logic
+     */
+    private VitalSigns.HealthStatus assessVitalSignsFromRequest(CreateAppointmentRequest request) {
+        // Create temporary VitalSigns object for assessment
+        VitalSigns tempVitalSigns = new VitalSigns();
+        tempVitalSigns.setBloodPressure(request.getBloodPressure());
+        tempVitalSigns.setHeartRate(request.getHeartRate());
+        tempVitalSigns.setTemperature(request.getTemperature());
+        tempVitalSigns.setWeight(request.getWeight());
+        tempVitalSigns.setHeight(request.getHeight());
+
+        // Trigger assessment (this happens in @PrePersist, so we need to call it manually)
+        // The assessHealthStatus() is private, so the healthStatus will be set when saved
+        // For now, we'll duplicate the logic here or save temporarily
+
+        // Actually, let's just save it temporarily to trigger @PrePersist
+        // No - better to duplicate minimal logic for critical check only
+
+        VitalSigns.HealthStatus status = getHealthStatusFromVitals(
+                request.getBloodPressure(),
+                request.getHeartRate(),
+                request.getTemperature()
+        );
+
+        log.debug("Assessed health status: {} for BP: {}, HR: {}, Temp: {}",
+                status, request.getBloodPressure(), request.getHeartRate(), request.getTemperature());
+
+        return status;
+    }
+
+    /**
+     * Simple health status assessment for critical checks
+     * Duplicates minimal logic from VitalSigns entity for pre-booking validation
+     */
+    private VitalSigns.HealthStatus getHealthStatusFromVitals(String bloodPressure, Integer heartRate, Double temperature) {
+        int severeCount = 0;
+        int moderateCount = 0;
+
+        // Check blood pressure
+        if (bloodPressure != null && !bloodPressure.trim().isEmpty()) {
+            try {
+                String[] parts = bloodPressure.split("/");
+                if (parts.length == 2) {
+                    int systolic = Integer.parseInt(parts[0].trim());
+                    int diastolic = Integer.parseInt(parts[1].trim());
+
+                    if (systolic >= 180 || diastolic >= 120 || systolic < 90 || diastolic < 60) {
+                        severeCount++;
+                    } else if (systolic >= 140 || diastolic >= 90 || systolic >= 130) {
+                        moderateCount++;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Invalid blood pressure format: {}", bloodPressure);
+            }
+        }
+
+        // Check heart rate
+        if (heartRate != null) {
+            if (heartRate < 50 || heartRate > 120) {
+                severeCount++;
+            } else if (heartRate < 60 || heartRate > 100) {
+                moderateCount++;
+            }
+        }
+
+        // Check temperature
+        if (temperature != null) {
+            if (temperature >= 39.0 || temperature <= 35.0) {
+                severeCount++;
+            } else if (temperature >= 37.5 || temperature <= 35.5) {
+                moderateCount++;
+            }
+        }
+
+        // Determine overall status
+        if (severeCount > 0) {
+            return VitalSigns.HealthStatus.SEVERE;
+        } else if (moderateCount > 0) {
+            return VitalSigns.HealthStatus.MODERATE;
+        } else {
+            return VitalSigns.HealthStatus.MILD;
+        }
     }
 }

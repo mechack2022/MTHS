@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.3</version>
+		<version>3.3.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.mths</groupId>
@@ -73,7 +73,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-			<version>3.4.4</version>
+			<!-- Version managed by Spring Boot parent (3.3.5) -->
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-admin-client -->
 <!--		<dependency>-->
@@ -124,13 +124,6 @@
 			<version>2.1.1</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
-		<dependency>
-			<groupId>jakarta.servlet</groupId>
-			<artifactId>jakarta.servlet-api</artifactId>
-			<version>6.1.0</version>
-			<scope>provided</scope>
-		</dependency>
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
@@ -153,7 +146,7 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.18.2</version>
+			<!-- Version managed by Spring Boot parent (2.17.x for Spring Boot 3.3.5) -->
 		</dependency>
 		<dependency>
 			<groupId>jakarta.validation</groupId>
@@ -163,12 +156,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
-			<dependency>
-				<groupId>org.projectlombok</groupId>
-				<artifactId>lombok</artifactId>
-				<version>1.18.38</version>
-				<scope>provided</scope>
-			</dependency>
 		<!-- https://mvnrepository.com/artifact/io.minio/minio -->
 		<dependency>
 			<groupId>io.minio</groupId>
@@ -213,6 +200,13 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webmvc</artifactId>
+		</dependency>
+
+		<!-- Swagger/OpenAPI Documentation -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.6.0</version>
 		</dependency>
 
 	</dependencies>
