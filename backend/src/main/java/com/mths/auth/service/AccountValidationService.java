@@ -176,16 +176,19 @@ public class AccountValidationService {
                   user.getEmail(), user.getAccountType());
         
         boolean hasRequiredProfile = switch (user.getAccountType()) {
-            case PATIENT -> user.hasPatientProfile() && 
-                           user.getPatientProfile() != null && 
+            case PATIENT -> user.hasPatientProfile() &&
+                           user.getPatientProfile() != null &&
                            user.getPatientProfile().isProfileComplete();
-            case DOCTOR -> user.hasDoctorProfile() && 
-                          user.getDoctorProfile() != null && 
+            case DOCTOR -> user.hasDoctorProfile() &&
+                          user.getDoctorProfile() != null &&
                           user.getDoctorProfile().isProfileComplete();
-            case LAB_TECHNICIAN -> user.hasLabTechnicianProfile() && 
-                                  user.getLabTechnicianProfile() != null && 
+            case LAB_TECHNICIAN -> user.hasLabTechnicianProfile() &&
+                                  user.getLabTechnicianProfile() != null &&
                                   user.getLabTechnicianProfile().isProfileComplete();
-            case ADMIN -> true; // Admins don't need profiles for login
+            case PHARMACIST -> user.hasPharmacistProfile() &&
+                              user.getPharmacistProfile() != null &&
+                              user.getPharmacistProfile().isProfileComplete();
+            case ADMIN, SUPER_ADMIN, PHARMACY, HOSPITAL, INSURANCE -> true; // These account types don't need profiles for login
             default -> false;
         };
 
@@ -210,16 +213,19 @@ public class AccountValidationService {
                   user.getEmail(), user.getAccountType());
         
         boolean hasCompleteProfile = switch (user.getAccountType()) {
-            case PATIENT -> user.hasPatientProfile() && 
-                           user.getPatientProfile() != null && 
+            case PATIENT -> user.hasPatientProfile() &&
+                           user.getPatientProfile() != null &&
                            user.getPatientProfile().isProfileComplete();
-            case DOCTOR -> user.hasDoctorProfile() && 
-                          user.getDoctorProfile() != null && 
+            case DOCTOR -> user.hasDoctorProfile() &&
+                          user.getDoctorProfile() != null &&
                           user.getDoctorProfile().isProfileComplete();
-            case LAB_TECHNICIAN -> user.hasLabTechnicianProfile() && 
-                                  user.getLabTechnicianProfile() != null && 
+            case LAB_TECHNICIAN -> user.hasLabTechnicianProfile() &&
+                                  user.getLabTechnicianProfile() != null &&
                                   user.getLabTechnicianProfile().isProfileComplete();
-            case ADMIN, SUPER_ADMIN -> true; // Admins don't need profiles for verification
+            case PHARMACIST -> user.hasPharmacistProfile() &&
+                              user.getPharmacistProfile() != null &&
+                              user.getPharmacistProfile().isProfileComplete();
+            case ADMIN, SUPER_ADMIN, PHARMACY, HOSPITAL, INSURANCE -> true; // These account types don't need profiles for verification
             default -> false;
         };
 

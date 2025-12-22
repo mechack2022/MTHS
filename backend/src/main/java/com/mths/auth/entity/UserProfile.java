@@ -52,6 +52,6 @@ public abstract class UserProfile extends com.mths.shared.entity.BaseEntity {
     }
 
     public enum ProfileType {
-        PATIENT, DOCTOR, ADMIN, PHARMACY_OWNER, LAB_TECHNICIAN
+        PATIENT, DOCTOR, ADMIN, PHARMACY_OWNER, LAB_TECHNICIAN, PHARMACIST
     }
 }

@@ -195,6 +195,22 @@ public class GlobalExceptionHandler {
     }
 
 
+    // Handle bad request exception (custom exception)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBadRequestException(
+            BadRequestException ex) {
+
+        log.error("Bad request: {}", ex.getMessage());
+
+        ApiResponse<Object> response = ApiResponse.error(
+                ex.getMessage(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     // Handle illegal argument exception
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
@@ -204,7 +220,7 @@ public class GlobalExceptionHandler {
 
         ApiResponse<Object> response = ApiResponse.error(
                 ex.getMessage(),
-                "Invalid argument",
+                ex.getMessage(),
                 HttpStatus.BAD_REQUEST.value()
         );
 

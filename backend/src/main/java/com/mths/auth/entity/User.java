@@ -4,6 +4,7 @@ package com.mths.auth.entity;
 import com.mths.patient.entity.PatientProfile;
 import com.mths.hospital.entity.DoctorProfile;
 import com.mths.hospital.entity.LabTechnicianProfile;
+import com.mths.pharmacy.entity.Pharmacist;
 import com.mths.shared.constants.VerificationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -145,6 +146,10 @@ public class User extends com.mths.shared.entity.BaseEntity {
         return getProfile(LabTechnicianProfile.class);
     }
 
+    public Pharmacist getPharmacistProfile() {
+        return getProfile(Pharmacist.class);
+    }
+
     public boolean hasPatientProfile() {
         return hasProfile(PatientProfile.class);
     }
@@ -155,6 +160,10 @@ public class User extends com.mths.shared.entity.BaseEntity {
 
     public boolean hasLabTechnicianProfile() {
         return hasProfile(LabTechnicianProfile.class);
+    }
+
+    public boolean hasPharmacistProfile() {
+        return hasProfile(Pharmacist.class);
     }
 
     public void addProfile(UserProfile profile) {
@@ -173,6 +182,7 @@ public class User extends com.mths.shared.entity.BaseEntity {
             case PATIENT -> getPatientProfile();
             case DOCTOR -> getDoctorProfile();
             case LAB_TECHNICIAN -> getLabTechnicianProfile();
+            case PHARMACIST -> getPharmacistProfile();
             default -> null;
         };
     }
@@ -183,6 +193,7 @@ public class User extends com.mths.shared.entity.BaseEntity {
             case PATIENT -> getPatientProfile();
             case DOCTOR -> getDoctorProfile();
             case LAB_TECHNICIAN -> getLabTechnicianProfile();
+            case PHARMACIST -> getPharmacistProfile();
             default -> null;
         };
     }
@@ -200,6 +211,9 @@ public class User extends com.mths.shared.entity.BaseEntity {
             case PATIENT -> hasRole(Role.RoleName.PATIENT);
             case DOCTOR -> hasRole(Role.RoleName.DOCTOR);
             case LAB_TECHNICIAN -> hasRole(Role.RoleName.LAB_TECHNICIAN);
+            case PHARMACIST -> hasRole(Role.RoleName.PHARMACIST) ||
+                              hasRole(Role.RoleName.PHARMACY_STAFF) ||
+                              hasRole(Role.RoleName.PHARMACY_ADMIN);
             default -> false;
         };
     }
@@ -217,6 +231,7 @@ public class User extends com.mths.shared.entity.BaseEntity {
         PATIENT,
         ADMIN,
         PHARMACY,
+        PHARMACIST,
         HOSPITAL,
         INSURANCE,
         LAB_TECHNICIAN,

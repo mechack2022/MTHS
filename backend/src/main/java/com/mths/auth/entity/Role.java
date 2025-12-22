@@ -62,6 +62,7 @@ public class Role extends com.mths.shared.entity.BaseEntity {
         PATIENT,
         NURSE,
         LAB_TECHNICIAN,
+        PHARMACIST,
         PHARMACY_ADMIN,
         PHARMACY_STAFF,
         HOSPITAL_ADMIN,

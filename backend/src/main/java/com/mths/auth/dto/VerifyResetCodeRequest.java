@@ -10,6 +10,6 @@ public record VerifyResetCodeRequest(
         String email,
 
         @NotBlank(message = "Reset code is required")
-        @Size(min = 5, max = 5, message = "Reset code must be 6 digits")
+        @Size(min = 6, max = 6, message = "Reset code must be 6 characters")
         String code
 ) {}

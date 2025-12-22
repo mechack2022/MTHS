@@ -10,6 +10,9 @@ import com.mths.hospital.dto.DoctorProfileDTO;
 import com.mths.hospital.dto.CreateLabTechnicianProfileRequest;
 import com.mths.hospital.dto.UpdateLabTechnicianProfileRequest;
 import com.mths.hospital.dto.LabTechnicianProfileDTO;
+import com.mths.pharmacy.dto.CreatePharmacistProfileRequest;
+import com.mths.pharmacy.dto.UpdatePharmacistProfileRequest;
+import com.mths.pharmacy.dto.PharmacistProfileDTO;
 import com.mths.shared.dto.ApiResponse;
 import com.mths.shared.exceptions.BadRequestException;
 import com.mths.auth.service.UserProfileService;
@@ -92,19 +95,43 @@ public class UserProfileController {
             @PathVariable String userId,
             @Valid @RequestBody CreateLabTechnicianProfileRequest request,
             @RequestHeader("Profile-Creation-Token") String token) {
-        
+
         log.info("Creating lab technician profile for user: {} (secure public endpoint)", userId);
-        
+
         // Validate token and user permissions (email verification required)
-        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo = 
+        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo =
                 profileCreationTokenService.validateProfileCreationToken(token, userId);
-        
+
         log.info("Token validated for user: {} ({})", tokenInfo.userId, tokenInfo.userEmail);
 
         LabTechnicianProfileDTO profile = userProfileService.createLabTechnicianProfile(userId, request);
 
         ApiResponse<LabTechnicianProfileDTO> response = ApiResponse.success(
                 "Lab technician profile created successfully",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/public/pharmacist/{userId}")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> createPharmacistProfilePublic(
+            @PathVariable String userId,
+            @Valid @RequestBody CreatePharmacistProfileRequest request,
+            @RequestHeader("Profile-Creation-Token") String token) {
+
+        log.info("Creating pharmacist profile for user: {} (secure public endpoint)", userId);
+
+        // Validate token and user permissions (email verification required)
+        ProfileCreationTokenService.ValidatedTokenInfo tokenInfo =
+                profileCreationTokenService.validateProfileCreationToken(token, userId);
+
+        log.info("Token validated for user: {} ({})", tokenInfo.userId, tokenInfo.userEmail);
+
+        PharmacistProfileDTO profile = userProfileService.createPharmacistProfile(userId, request);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile created successfully",
                 profile,
                 HttpStatus.CREATED.value()
         );
@@ -165,6 +192,127 @@ public class UserProfileController {
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping("/pharmacist")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> createPharmacistProfile(
+            @Valid @RequestBody CreatePharmacistProfileRequest request,
+            @RequestParam(required = false) String targetUserId) {
+        String userId = determineTargetUserId(targetUserId);
+        log.info("Creating pharmacist profile for user: {} by: {}", userId, getCurrentUserId());
+
+        PharmacistProfileDTO profile = userProfileService.createPharmacistProfile(userId, request);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile created successfully",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+// =============================================================================
+// 1. ADMIN PHARMACIST CREATION ENDPOINT
+// =============================================================================
+
+    @PostMapping("/admin/pharmacist/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> createPharmacistProfileByAdmin(
+            @PathVariable String userId,
+            @Valid @RequestBody CreatePharmacistProfileRequest request) {
+        log.info("Admin creating pharmacist profile for user: {} by: {}", userId, getCurrentUserIdSafe());
+
+        PharmacistProfileDTO profile = userProfileService.createPharmacistProfile(userId, request);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile created successfully by admin",
+                profile,
+                HttpStatus.CREATED.value()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+// =============================================================================
+// 2. UPDATE PHARMACIST PROFILE ENDPOINT
+// Add this after the @PutMapping("/lab-technician") endpoint (around line 137)
+// =============================================================================
+
+    @PutMapping("/pharmacist")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> updatePharmacistProfile(
+            @Valid @RequestBody UpdatePharmacistProfileRequest request,
+            @RequestParam(required = false) String targetUserId) {
+        String userId = determineTargetUserId(targetUserId);
+        log.info("Updating pharmacist profile for user: {} by: {}", userId, getCurrentUserId());
+
+        PharmacistProfileDTO profile = userProfileService.updatePharmacistProfile(userId, request);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile updated successfully",
+                profile
+        );
+        return ResponseEntity.ok(response);
+    }
+
+// =============================================================================
+// 3. GET CURRENT PHARMACIST PROFILE ENDPOINT
+// Add this after the @GetMapping("/lab-technician") endpoint (around line 197)
+// =============================================================================
+
+    @GetMapping("/pharmacist")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> getCurrentPharmacistProfile() {
+        String userId = getCurrentUserId();
+        log.info("Retrieving pharmacist profile for user: {}", userId);
+
+        PharmacistProfileDTO profile = userProfileService.getPharmacistProfile(userId);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile retrieved successfully",
+                profile
+        );
+        return ResponseEntity.ok(response);
+    }
+
+// =============================================================================
+// 4. DELETE PHARMACIST PROFILE ENDPOINT
+// Add this after the @DeleteMapping("/lab-technician") endpoint (around line 292)
+// =============================================================================
+
+    @DeleteMapping("/pharmacist")
+    public ResponseEntity<ApiResponse<String>> deletePharmacistProfile(
+            @RequestParam(required = false) String targetUserId) {
+        String userId = determineTargetUserId(targetUserId);
+        log.info("Deleting pharmacist profile for user: {} by: {}", userId, getCurrentUserId());
+
+        userProfileService.deleteProfile(userId, ProfileType.PHARMACIST);
+
+        ApiResponse<String> response = ApiResponse.success(
+                "Pharmacist profile deleted successfully",
+                "Profile deleted"
+        );
+        return ResponseEntity.ok(response);
+    }
+
+// =============================================================================
+// 5. ADMIN GET USER PHARMACIST PROFILE ENDPOINT
+// Add this after the @GetMapping("/user/{userId}/doctor") endpoint (around line 335)
+// =============================================================================
+
+    @GetMapping("/user/{userId}/pharmacist")
+    public ResponseEntity<ApiResponse<PharmacistProfileDTO>> getUserPharmacistProfile(@PathVariable String userId) {
+        log.info("Admin retrieving pharmacist profile for user: {}", userId);
+
+        PharmacistProfileDTO profile = userProfileService.getPharmacistProfile(userId);
+
+        ApiResponse<PharmacistProfileDTO> response = ApiResponse.success(
+                "Pharmacist profile retrieved successfully",
+                profile
+        );
+        return ResponseEntity.ok(response);
+    }
+
+// =============================================================================
+// END OF PHARMACIST ENDPOINTS
+// =============================================================================
+
 
     // ========================================================================
     // PROFILE CREATION ENDPOINTS (for unauthenticated admin operations)
