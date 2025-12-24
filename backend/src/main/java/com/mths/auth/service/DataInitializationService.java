@@ -127,7 +127,24 @@ public class DataInitializationService implements CommandLineRunner {
         assignPermissionsToRole(Role.RoleName.PHARMACY_ADMIN, Arrays.asList(
                 Permission.PermissionName.PHARMACY_READ, Permission.PermissionName.PHARMACY_UPDATE,
                 Permission.PermissionName.PHARMACY_MANAGE_INVENTORY,
-                Permission.PermissionName.PRESCRIPTION_READ, Permission.PermissionName.PRESCRIPTION_UPDATE
+                Permission.PermissionName.PRESCRIPTION_READ, Permission.PermissionName.PRESCRIPTION_UPDATE,
+                Permission.PermissionName.PRESCRIPTION_APPROVE
+        ));
+
+        // Pharmacist permissions - dispense prescriptions and manage medications
+        assignPermissionsToRole(Role.RoleName.PHARMACIST, Arrays.asList(
+                Permission.PermissionName.PRESCRIPTION_READ,
+                Permission.PermissionName.PRESCRIPTION_UPDATE,
+                Permission.PermissionName.PRESCRIPTION_APPROVE,
+                Permission.PermissionName.PATIENT_READ,
+                Permission.PermissionName.PHARMACY_READ,
+                Permission.PermissionName.PHARMACY_MANAGE_INVENTORY
+        ));
+
+        // Lab Technician permissions
+        assignPermissionsToRole(Role.RoleName.LAB_TECHNICIAN, Arrays.asList(
+                Permission.PermissionName.PATIENT_READ,
+                Permission.PermissionName.MEDICAL_RECORD_READ
         ));
 
         // User role - basic permissions

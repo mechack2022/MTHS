@@ -116,14 +116,21 @@ public class UserAuthServiceImpl implements UserAuthService {
 
     @Override
     public TokenResponse login(String username, String password) {
+        log.info("Login attempt for email: {}", username);
+
         // Find user by email
         Optional<User> userOpt = userRepository.findByEmail(username);
 
         if (userOpt.isEmpty()) {
+            log.error("User not found with email: {}", username);
+            // Also check if user exists at all
+            long totalUsers = userRepository.count();
+            log.error("Total users in database: {}", totalUsers);
             throw new BadRequestException("username or password", "Invalid email or password");
         }
 
         User user = userOpt.get();
+        log.info("User found: {} (ID: {}, UUID: {})", user.getEmail(), user.getId(), user.getUuid());
         // Check if user is active
         if (!user.getIsActive()) {
             throw new BadRequestException("account", "Account is inactive. Please contact support.");
@@ -310,13 +317,11 @@ public class UserAuthServiceImpl implements UserAuthService {
                     .verificationCodeUsed(passwordEncoder.encode(code))
                     .build();
 
-            // Invalidate any existing tokens for this user
-            passwordResetTokenRepository.invalidateAllTokensForUser(user.getUuid());
-            
-            // Save new token
+            // Save new token (existing tokens already invalidated in initiatePasswordReset)
             PasswordResetToken savedToken = passwordResetTokenRepository.save(resetToken);
-            
-            log.info("Password reset token generated for email: {}", email);
+
+            log.info("Password reset token generated for email: {} - Token length: {}",
+                     email, savedToken.getToken() != null ? savedToken.getToken().length() : 0);
             return savedToken.getToken();
         }
 
@@ -362,13 +367,23 @@ public class UserAuthServiceImpl implements UserAuthService {
 
     @Override
     public String resetPasswordWithToken(String resetToken, String newPassword, String confirmPassword) {
+        log.info("Password reset attempt with token (length: {})", resetToken != null ? resetToken.length() : "null");
+        log.debug("Token received: '{}'", resetToken);
+
         if (!newPassword.equals(confirmPassword)) {
             throw new BadRequestException("password", "Passwords do not match");
         }
 
+        // Trim the token to remove any whitespace
+        String trimmedToken = resetToken != null ? resetToken.trim() : null;
+        log.debug("Token after trim: '{}'", trimmedToken);
+
         // Find and validate the reset token
-        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByTokenAndUsedFalse(resetToken);
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByTokenAndUsedFalse(trimmedToken);
         if (tokenOpt.isEmpty()) {
+            log.error("Reset token not found in database: '{}'", trimmedToken);
+            long totalTokens = passwordResetTokenRepository.count();
+            log.error("Total password reset tokens in database: {}", totalTokens);
             throw new BadRequestException("token", "Invalid or expired reset token");
         }
 
@@ -574,6 +589,8 @@ public class UserAuthServiceImpl implements UserAuthService {
             case DOCTOR:
             case PATIENT:
             case PHARMACY:
+            case PHARMACIST:
+            case LAB_TECHNICIAN:
             case HOSPITAL:
             case INSURANCE:
             default:
@@ -590,9 +607,10 @@ public class UserAuthServiceImpl implements UserAuthService {
             case PATIENT -> Role.RoleName.PATIENT;
             case ADMIN -> Role.RoleName.ADMIN;
             case PHARMACY -> Role.RoleName.PHARMACY_ADMIN;
+            case PHARMACIST -> Role.RoleName.PHARMACIST;
+            case LAB_TECHNICIAN -> Role.RoleName.LAB_TECHNICIAN;
             case HOSPITAL -> Role.RoleName.HOSPITAL_ADMIN;
             case INSURANCE -> Role.RoleName.INSURANCE_ADMIN;
-            case LAB_TECHNICIAN -> Role.RoleName.LAB_TECHNICIAN;
             default -> null;
         };
     }

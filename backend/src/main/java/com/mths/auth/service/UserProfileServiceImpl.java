@@ -3,15 +3,20 @@ package com.mths.auth.service;
 import com.mths.auth.dto.*;
 import com.mths.patient.dto.*;
 import com.mths.hospital.dto.*;
+import com.mths.pharmacy.dto.*;
 import com.mths.patient.entity.PatientProfile;
 import com.mths.hospital.entity.DoctorProfile;
 import com.mths.hospital.entity.LabTechnicianProfile;
+import com.mths.pharmacy.entity.Pharmacist;
+import com.mths.pharmacy.entity.Pharmacy;
 import com.mths.auth.entity.*;
 import com.mths.shared.exceptions.BadRequestException;
 import com.mths.shared.exceptions.ResourceNotFoundException;
 import com.mths.shared.mapper.ProfileMapper;
 import com.mths.shared.mapper.LabTechnicianMapper;
 import com.mths.auth.repository.UserRepository;
+import com.mths.pharmacy.repository.PharmacistRepository;
+import com.mths.pharmacy.repository.PharmacyRepository;
 import com.mths.shared.utils.ProfileCompletionStatus;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +35,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PharmacistRepository pharmacistRepository;
+
+    @Autowired
+    private PharmacyRepository pharmacyRepository;
 
     @Autowired
     private RolePermissionService rolePermissionService;
@@ -159,6 +170,63 @@ public class UserProfileServiceImpl implements UserProfileService {
         return labTechnicianMapper.toDTO(savedUser.getLabTechnicianProfile());
     }
 
+    @Override
+    public PharmacistProfileDTO createPharmacistProfile(String userId, CreatePharmacistProfileRequest request) {
+        log.info("Creating pharmacist profile for user: {}", userId);
+
+        User user = findUserByUuid(userId);
+        validateUserForProfileCreation(user, UserProfile.ProfileType.PHARMACIST);
+
+        if (user.hasPharmacistProfile()) {
+            throw new BadRequestException("profile", "Pharmacist profile already exists for this user");
+        }
+
+        // Validate unique fields
+        validateUniquePharmacistFields(request);
+
+        // Get pharmacy if provided
+        Pharmacy pharmacy = null;
+        if (request.getPharmacyId() != null) {
+            pharmacy = pharmacyRepository.findById(request.getPharmacyId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Pharmacy", "Pharmacy not found", request.getPharmacyId().toString()));
+        }
+
+        // Create pharmacist profile
+        Pharmacist pharmacist = new Pharmacist();
+        pharmacist.setPharmacy(pharmacy);
+        pharmacist.setLicenseNumber(request.getLicenseNumber());
+        pharmacist.setRegistrationNumber(request.getRegistrationNumber());
+        pharmacist.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        pharmacist.setIssuingAuthority(request.getIssuingAuthority());
+        pharmacist.setGender(request.getGender());
+        pharmacist.setDateOfBirth(request.getDateOfBirth());
+        pharmacist.setPhoneNumber(request.getPhoneNumber());
+        pharmacist.setAlternativePhone(request.getAlternativePhone());
+        pharmacist.setAddress(request.getAddress());
+        pharmacist.setSpecialization(request.getSpecialization());
+        pharmacist.setYearsOfExperience(request.getYearsOfExperience());
+        pharmacist.setQualifications(request.getQualifications());
+        pharmacist.setPharmacySchool(request.getPharmacySchool());
+        pharmacist.setGraduationYear(request.getGraduationYear());
+        pharmacist.setEmploymentType(request.getEmploymentType());
+        pharmacist.setPosition(request.getPosition());
+        pharmacist.setHireDate(request.getHireDate());
+        pharmacist.setIsSuperintendent(request.getIsSuperintendent());
+        pharmacist.setBio(request.getBio());
+        pharmacist.setCertificateUrl(request.getCertificateUrl());
+
+        // Add profile to user
+        user.addProfile(pharmacist);
+
+        // Save user with profile
+        User savedUser = userRepository.save(user);
+
+        // Notify AuthService about profile completion change
+        notifyProfileCompletionChange(savedUser);
+
+        return profileMapper.toPharmacistProfileDTO(savedUser.getPharmacistProfile());
+    }
+
     // ========================================================================
     // PROFILE UPDATE METHODS
     // ========================================================================
@@ -238,6 +306,37 @@ public class UserProfileServiceImpl implements UserProfileService {
         return labTechnicianMapper.toDTO(savedUser.getLabTechnicianProfile());
     }
 
+    @Override
+    public PharmacistProfileDTO updatePharmacistProfile(String userId, UpdatePharmacistProfileRequest request) {
+        log.info("Updating pharmacist profile for user: {}", userId);
+
+        User user = findUserByUuid(userId);
+        validateEmailVerified(user);
+        Pharmacist pharmacist = user.getPharmacistProfile();
+
+        if (pharmacist == null) {
+            throw new ResourceNotFoundException("Profile", "Pharmacist profile not found for user", userId);
+        }
+
+        // Update pharmacy if provided
+        if (request.getPharmacyId() != null) {
+            Pharmacy pharmacy = pharmacyRepository.findById(request.getPharmacyId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Pharmacy", "Pharmacy not found", request.getPharmacyId().toString()));
+            pharmacist.setPharmacy(pharmacy);
+        }
+
+        // Update fields (only if not null)
+        updatePharmacistProfileFields(pharmacist, request);
+
+        // Save updated profile
+        User savedUser = userRepository.save(user);
+
+        // Notify AuthService about profile completion change
+        notifyProfileCompletionChange(savedUser);
+
+        return profileMapper.toPharmacistProfileDTO(savedUser.getPharmacistProfile());
+    }
+
     // ========================================================================
     // PROFILE RETRIEVAL METHODS
     // ========================================================================
@@ -312,6 +411,21 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
 
         return labTechnicianMapper.toDTO(profile);
+    }
+
+    @Override
+    public PharmacistProfileDTO getPharmacistProfile(String userId) {
+        log.info("Retrieving pharmacist profile for user: {}", userId);
+
+        User user = findUserByUuid(userId);
+        validateEmailVerified(user);
+        Pharmacist pharmacist = user.getPharmacistProfile();
+
+        if (pharmacist == null) {
+            throw new ResourceNotFoundException("Profile", "Pharmacist profile not found for user", userId);
+        }
+
+        return profileMapper.toPharmacistProfileDTO(pharmacist);
     }
 
     // ========================================================================
@@ -404,6 +518,8 @@ public class UserProfileServiceImpl implements UserProfileService {
             case PATIENT -> user.getAccountType() == User.AccountType.PATIENT;
             case DOCTOR -> user.getAccountType() == User.AccountType.DOCTOR;
             case LAB_TECHNICIAN -> user.getAccountType() == User.AccountType.LAB_TECHNICIAN;
+            case PHARMACIST -> user.getAccountType() == User.AccountType.PHARMACIST ||
+                              user.getAccountType() == User.AccountType.PHARMACY;
             default -> false;
         };
 
@@ -510,6 +626,26 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
     }
 
+    private void validateUniquePharmacistFields(CreatePharmacistProfileRequest request) {
+        // Check if license number already exists
+        if (request.getLicenseNumber() != null &&
+                pharmacistRepository.existsByLicenseNumber(request.getLicenseNumber())) {
+            throw new BadRequestException("licenseNumber", "License number already exists");
+        }
+
+        // Check if registration number already exists
+        if (request.getRegistrationNumber() != null &&
+                pharmacistRepository.existsByRegistrationNumber(request.getRegistrationNumber())) {
+            throw new BadRequestException("registrationNumber", "Registration number already exists");
+        }
+
+        // Check if phone number already exists
+        if (request.getPhoneNumber() != null &&
+                userRepository.existsByProfilePhoneNumber(request.getPhoneNumber())) {
+            throw new BadRequestException("phoneNumber", "Phone number already exists");
+        }
+    }
+
     // ========================================================================
     // PROFILE UPDATE HELPER METHODS
     // ========================================================================
@@ -592,6 +728,69 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
     }
 
+    private void updatePharmacistProfileFields(Pharmacist pharmacist, UpdatePharmacistProfileRequest request) {
+        if (request.getLicenseExpiryDate() != null) {
+            pharmacist.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        }
+        if (request.getIssuingAuthority() != null) {
+            pharmacist.setIssuingAuthority(request.getIssuingAuthority());
+        }
+        if (request.getGender() != null) {
+            pharmacist.setGender(request.getGender());
+        }
+        if (request.getDateOfBirth() != null) {
+            pharmacist.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getPhoneNumber() != null) {
+            pharmacist.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getAlternativePhone() != null) {
+            pharmacist.setAlternativePhone(request.getAlternativePhone());
+        }
+        if (request.getAddress() != null) {
+            pharmacist.setAddress(request.getAddress());
+        }
+        if (request.getSpecialization() != null) {
+            pharmacist.setSpecialization(request.getSpecialization());
+        }
+        if (request.getYearsOfExperience() != null) {
+            pharmacist.setYearsOfExperience(request.getYearsOfExperience());
+        }
+        if (request.getQualifications() != null) {
+            pharmacist.setQualifications(request.getQualifications());
+        }
+        if (request.getPharmacySchool() != null) {
+            pharmacist.setPharmacySchool(request.getPharmacySchool());
+        }
+        if (request.getGraduationYear() != null) {
+            pharmacist.setGraduationYear(request.getGraduationYear());
+        }
+        if (request.getEmploymentType() != null) {
+            pharmacist.setEmploymentType(request.getEmploymentType());
+        }
+        if (request.getPosition() != null) {
+            pharmacist.setPosition(request.getPosition());
+        }
+        if (request.getHireDate() != null) {
+            pharmacist.setHireDate(request.getHireDate());
+        }
+        if (request.getIsSuperintendent() != null) {
+            pharmacist.setIsSuperintendent(request.getIsSuperintendent());
+        }
+        if (request.getIsAvailable() != null) {
+            pharmacist.setIsAvailable(request.getIsAvailable());
+        }
+        if (request.getAvailabilityNotes() != null) {
+            pharmacist.setAvailabilityNotes(request.getAvailabilityNotes());
+        }
+        if (request.getBio() != null) {
+            pharmacist.setBio(request.getBio());
+        }
+        if (request.getCertificateUrl() != null) {
+            pharmacist.setCertificateUrl(request.getCertificateUrl());
+        }
+    }
+
     // ========================================================================
     // ROLE MANAGEMENT METHODS
     // ========================================================================
@@ -620,6 +819,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             case PATIENT -> Role.RoleName.PATIENT;
             case ADMIN -> Role.RoleName.ADMIN;
             case PHARMACY -> Role.RoleName.PHARMACY_ADMIN;
+            case PHARMACIST -> Role.RoleName.PHARMACIST;
             case HOSPITAL -> Role.RoleName.HOSPITAL_ADMIN;
             case INSURANCE -> Role.RoleName.INSURANCE_ADMIN;
             case LAB_TECHNICIAN -> Role.RoleName.LAB_TECHNICIAN;

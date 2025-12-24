@@ -3,6 +3,7 @@ package com.mths.auth.service;
 import com.mths.auth.dto.*;
 import com.mths.patient.dto.*;
 import com.mths.hospital.dto.*;
+import com.mths.pharmacy.dto.*;
 import com.mths.auth.entity.UserProfile;
 import com.mths.shared.utils.ProfileCompletionStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,17 +13,20 @@ public interface UserProfileService {
     PatientProfileDTO createPatientProfile(String userId, CreatePatientProfileRequest request);
     DoctorProfileDTO createDoctorProfile(String userId, CreateDoctorProfileRequest request);
     LabTechnicianProfileDTO createLabTechnicianProfile(String userId, CreateLabTechnicianProfileRequest request);
+    PharmacistProfileDTO createPharmacistProfile(String userId, CreatePharmacistProfileRequest request);
 
     // Profile Updates
     PatientProfileDTO updatePatientProfile(String userId, UpdatePatientProfileRequest request);
     DoctorProfileDTO updateDoctorProfile(String userId, UpdateDoctorProfileRequest request);
     LabTechnicianProfileDTO updateLabTechnicianProfile(String userId, UpdateLabTechnicianProfileRequest request);
+    PharmacistProfileDTO updatePharmacistProfile(String userId, UpdatePharmacistProfileRequest request);
 
     // Profile Retrieval
     UserProfileDTO getUserProfile(String userId);
     PatientProfileDTO getPatientProfile(String userId);
     DoctorProfileDTO getDoctorProfile(String userId);
     LabTechnicianProfileDTO getLabTechnicianProfile(String userId);
+    PharmacistProfileDTO getPharmacistProfile(String userId);
 
     // Profile Status
     boolean hasProfile(String userId);

@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/patient/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/doctor/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/lab-technician/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/profile/public/pharmacist/*").permitAll()
 
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/fileUpload/profile-image").permitAll()
 
