@@ -38,7 +38,7 @@ jobs:
         cache: maven
 
     - name: Cache Maven packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -90,7 +90,7 @@ jobs:
       run: mvn -B package -DskipTests --file backend/pom.xml
 
     - name: Upload JAR artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mths-backend-jar
         path: backend/target/*.jar
