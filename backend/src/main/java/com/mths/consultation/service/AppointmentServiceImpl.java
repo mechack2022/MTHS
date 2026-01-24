@@ -23,6 +23,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +45,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final DoctorProfileRepository doctorProfileRepository;
     private final AppointmentMapper appointmentMapper;
     private final AccountValidationService accountValidationService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -213,9 +217,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment appointment = findAppointmentById(appointmentId);
 
-        if (appointment.getStatus() != AppointmentStatus.SCHEDULED) {
-            throw new BadRequestException("appointment", 
-                    "Can only confirm scheduled appointments. Current status: " + appointment.getStatus());
+        // Validate that only the assigned doctor can confirm this appointment
+        validateDoctorAuthorization(appointment);
+
+        if (appointment.getStatus() != AppointmentStatus.SCHEDULED &&
+            appointment.getStatus() != AppointmentStatus.RESCHEDULED) {
+            throw new BadRequestException("appointment",
+                    "Can only confirm scheduled or rescheduled appointments. Current status: " + appointment.getStatus());
         }
 
         appointment.setStatus(AppointmentStatus.CONFIRMED);
@@ -232,9 +240,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment appointment = findAppointmentById(appointmentId);
 
-        if (appointment.getStatus() != AppointmentStatus.CONFIRMED && 
+        // Validate that only the assigned doctor can start this consultation
+        validateDoctorAuthorization(appointment);
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED &&
             appointment.getStatus() != AppointmentStatus.SCHEDULED) {
-            throw new BadRequestException("appointment", 
+            throw new BadRequestException("appointment",
                     "Can only start confirmed or scheduled appointments. Current status: " + appointment.getStatus());
         }
 
@@ -252,8 +263,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment appointment = findAppointmentById(appointmentId);
 
+        // Validate that only the assigned doctor can complete this consultation
+        validateDoctorAuthorization(appointment);
+
         if (appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
-            throw new BadRequestException("appointment", 
+            throw new BadRequestException("appointment",
                     "Can only complete appointments that are in progress. Current status: " + appointment.getStatus());
         }
 
@@ -494,6 +508,52 @@ public class AppointmentServiceImpl implements AppointmentService {
     private Appointment findAppointmentById(Long appointmentId) {
         return appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", "appointmentId", appointmentId));
+    }
+
+    /**
+     * Validates that the authenticated user is the doctor assigned to this appointment.
+     * Admins and Super Admins are exempt from this check.
+     *
+     * @param appointment The appointment to validate authorization for
+     * @throws AccessDeniedException if the user is not authorized
+     */
+    private void validateDoctorAuthorization(Appointment appointment) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("You must be authenticated to perform this action");
+        }
+
+        // Check if user has ADMIN or SUPER_ADMIN role (they can access any appointment)
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
+                                 auth.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        if (isAdmin) {
+            log.debug("Admin user bypassing doctor authorization check for appointment: {}", appointment.getId());
+            return; // Admins can access any appointment
+        }
+
+        // Get authenticated user's email
+        String userEmail = authentication.getName();
+
+        // Find user by email
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("User not found"));
+
+        // Find doctor profile for this user
+        DoctorProfile doctorProfile = doctorProfileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new AccessDeniedException("You are not registered as a doctor"));
+
+        // Check if this doctor is assigned to the appointment
+        if (!doctorProfile.getId().equals(appointment.getDoctorProfileId())) {
+            log.warn("Doctor {} attempted to access appointment {} assigned to doctor {}",
+                    doctorProfile.getId(), appointment.getId(), appointment.getDoctorProfileId());
+            throw new AccessDeniedException(
+                    "You are not authorized to manage this appointment. This appointment is assigned to another doctor.");
+        }
+
+        log.debug("Doctor {} authorized for appointment {}", doctorProfile.getId(), appointment.getId());
     }
 
 //    private boolean hasVitalSignsData(CreateAppointmentRequest request) {

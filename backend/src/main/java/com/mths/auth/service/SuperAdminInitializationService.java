@@ -36,7 +36,7 @@ public class SuperAdminInitializationService implements CommandLineRunner {
     @Value("${app.superadmin.email:superadmin@healthcare.com}")
     private String superAdminEmail;
 
-    @Value("${app.superadmin.password:SuperAdmin123!}")
+    @Value("${app.superadmin.password}")
     private String superAdminPassword;
 
     @Value("${app.superadmin.firstName:Super}")
