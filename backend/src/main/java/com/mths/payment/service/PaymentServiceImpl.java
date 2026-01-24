@@ -11,6 +11,7 @@ import com.mths.payment.factory.PaymentFactory;
 import com.mths.payment.provider.PaymentProvider;
 import com.mths.payment.repository.PaymentRepository;
 import com.mths.shared.exceptions.ResourceNotFoundException;
+import com.mths.auth.service.AccountValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentFactory paymentFactory;
     private final PaymentProvider paymentProvider; // Depends on abstraction!
     private final AppointmentService appointmentService;
+    private final AccountValidationService accountValidationService;
 
     @Override
     public PaymentInitializationResponse initiateAppointmentPayment(
@@ -51,7 +53,16 @@ public class PaymentServiceImpl implements PaymentService {
                 request.getDoctorProfileId(),
                 request.getScheduledDatetime());
 
-        // STEP 1: Check if doctor has COMPLETED payment for this time slot
+        // STEP 1: Validate that patient and doctor accounts exist and are valid
+        log.debug("Validating patient account - ID: {}", request.getPatientProfileId());
+        accountValidationService.validatePatientAccount(request.getPatientProfileId());
+
+        log.debug("Validating doctor account - ID: {}", request.getDoctorProfileId());
+        accountValidationService.validateDoctorAccount(request.getDoctorProfileId());
+
+        log.info("Patient and doctor accounts validated successfully");
+
+        // STEP 2: Check if doctor has COMPLETED payment for this time slot
         // (PENDING payments are allowed since they might never complete)
         java.time.LocalDateTime endTime = request.getScheduledDatetime()
                 .plusMinutes(request.getDurationMinutes() != null ? request.getDurationMinutes() : 30);
@@ -67,19 +78,19 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("Time slot available - Proceeding with payment initialization");
 
-        // Use factory to create payment with proper defaults
+        // STEP 3: Use factory to create payment with proper defaults
         Payment payment = paymentFactory.createPaymentFromAppointmentRequest(request, patientEmail);
 
-        // Save payment in PENDING state
+        // STEP 4: Save payment in PENDING state
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Build metadata for payment provider
+        // STEP 5: Build metadata for payment provider
         Map<String, Object> metadata = buildPaymentMetadata(savedPayment);
 
-        // Use strategy pattern - delegate to payment provider
+        // STEP 6: Use strategy pattern - delegate to payment provider
         PaymentInitializationResponse response = paymentProvider.initializePayment(savedPayment, metadata);
 
-        // Update payment with authorization URL
+        // STEP 7: Update payment with authorization URL
         paymentFactory.setAuthorizationUrl(savedPayment, response.getAuthorizationUrl());
         paymentRepository.save(savedPayment);
 
@@ -90,7 +101,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Payment verifyPayment(String reference) {
         log.info("Verifying payment - Reference: {}", reference);
         // Find payment in database

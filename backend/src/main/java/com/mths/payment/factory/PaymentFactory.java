@@ -56,7 +56,6 @@ public class PaymentFactory {
         // Store appointment details (for later creation)
         payment.setScheduledDatetime(request.getScheduledDatetime());
         payment.setAppointmentType(request.getAppointmentType().name());
-        payment.setSymptoms(request.getSymptoms());
         payment.setDurationMinutes(request.getDurationMinutes());
 
         log.info("Created payment entity - Reference: {}, Amount: {} {}, Patient: {}, Doctor: {}",
@@ -112,7 +111,6 @@ public class PaymentFactory {
         request.setAppointmentType(
                 com.mths.consultation.entity.Appointment.AppointmentType.valueOf(payment.getAppointmentType())
         );
-        request.setSymptoms(payment.getSymptoms());
         request.setDurationMinutes(payment.getDurationMinutes());
         request.setConsultationFee(payment.getAmount().doubleValue());
 
