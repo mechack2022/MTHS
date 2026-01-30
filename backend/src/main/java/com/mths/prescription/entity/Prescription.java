@@ -12,8 +12,6 @@ import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Prescription Entity
@@ -76,10 +74,10 @@ public class Prescription extends BaseEntity {
     @Column(name = "dispensed_by")
     private String dispensedBy; // Pharmacist/nurse who dispensed
 
-    // Pharmacy workflow
+    // Pharmacy workflow (REQUIRED - pharmacy picks up document and delivers to patient)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pharmacy_id")
-    private Pharmacy pharmacy; // Pharmacy selected/recommended to fulfill prescription
+    @JoinColumn(name = "pharmacy_id", nullable = false)
+    private Pharmacy pharmacy; // Pharmacy that will fulfill and deliver prescription
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pharmacist_id")
@@ -89,8 +87,8 @@ public class Prescription extends BaseEntity {
     private LocalDateTime sentToPharmacyAt; // When prescription was sent to pharmacy
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "pharmacy_status")
-    private PharmacyStatus pharmacyStatus = PharmacyStatus.NOT_SENT;
+    @Column(name = "pharmacy_status", nullable = false)
+    private PharmacyStatus pharmacyStatus = PharmacyStatus.PENDING; // Auto-sent to pharmacy on creation
 
     @Column(name = "pharmacy_notes", columnDefinition = "TEXT")
     private String pharmacyNotes; // Notes from pharmacist during fulfillment
@@ -105,9 +103,22 @@ public class Prescription extends BaseEntity {
     @Column(name = "refills_remaining")
     private Integer refillsRemaining = 0;
 
-    // Medications (One prescription can have multiple medications)
-    @OneToMany(mappedBy = "prescription", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PrescriptionItem> prescriptionItems = new ArrayList<>();
+    // Prescription Document (PDF or PNG uploaded by doctor)
+    // Contains all prescription items/medications details
+    @Column(name = "prescription_document_path")
+    private String prescriptionDocumentPath; // MinIO object key/path
+
+    @Column(name = "prescription_document_name")
+    private String prescriptionDocumentName; // Original filename
+
+    @Column(name = "prescription_document_type")
+    private String prescriptionDocumentType; // MIME type (application/pdf, image/png)
+
+    @Column(name = "prescription_document_size")
+    private Long prescriptionDocumentSize; // File size in bytes
+
+    @Column(name = "prescription_document_uploaded_at")
+    private LocalDateTime prescriptionDocumentUploadedAt; // Upload timestamp
 
     // For prescriptions created via records - link to previous prescription if it's a refill
     @ManyToOne(fetch = FetchType.LAZY)
@@ -198,14 +209,8 @@ public class Prescription extends BaseEntity {
         return isRefillable && refillsRemaining != null && refillsRemaining > 0;
     }
 
-    public void addPrescriptionItem(PrescriptionItem item) {
-        prescriptionItems.add(item);
-        item.setPrescription(this);
-    }
-
-    public void removePrescriptionItem(PrescriptionItem item) {
-        prescriptionItems.remove(item);
-        item.setPrescription(null);
+    public boolean hasDocument() {
+        return prescriptionDocumentPath != null && !prescriptionDocumentPath.isEmpty();
     }
 
     public boolean isSentToPharmacy() {
@@ -215,6 +220,7 @@ public class Prescription extends BaseEntity {
     public boolean canBeSentToPharmacy() {
         return status == PrescriptionStatus.ACTIVE &&
                !isExpired() &&
+               hasDocument() &&
                pharmacyStatus == PharmacyStatus.NOT_SENT;
     }
 
@@ -242,6 +248,11 @@ public class Prescription extends BaseEntity {
         // For ongoing treatment, set longer validity
         if (Boolean.TRUE.equals(isOngoingTreatment) && validUntil == null) {
             validUntil = issuedDate.plusMonths(6);
+        }
+
+        // Auto-set sent to pharmacy timestamp (prescriptions are auto-sent to pharmacy on creation)
+        if (sentToPharmacyAt == null) {
+            sentToPharmacyAt = LocalDateTime.now();
         }
     }
 

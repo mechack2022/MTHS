@@ -7,8 +7,6 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Request DTO for creating a prescription
@@ -29,7 +27,8 @@ public class CreatePrescriptionRequest {
     @Schema(description = "Appointment ID (required for DURING_CONSULTATION context)", example = "789")
     private Long appointmentId;
 
-    @Schema(description = "Pharmacy ID (selected/recommended pharmacy for fulfillment)", example = "321")
+    @Schema(description = "Pharmacy ID (pharmacy that will fulfill and deliver prescription)", example = "321", required = true)
+    @NotNull(message = "Pharmacy ID is required - pharmacy will pick up document and deliver to patient")
     private Long pharmacyId;
 
     @Schema(description = "Creation context", example = "DURING_CONSULTATION", required = true,
@@ -63,10 +62,8 @@ public class CreatePrescriptionRequest {
     @Schema(description = "Previous prescription ID (if this is a refill)", example = "555")
     private Long previousPrescriptionId;
 
-    @Schema(description = "List of medications to include in prescription", required = true)
-    @NotEmpty(message = "At least one medication is required")
-    @Valid
-    private List<PrescriptionItemRequest> medications = new ArrayList<>();
+    // NOTE: Prescription document (PDF/PNG) will be uploaded separately via MultipartFile parameter
+    // The document should contain all prescription item/medication details
 
     // Custom validation
     @AssertTrue(message = "Appointment ID is required for DURING_CONSULTATION context")
