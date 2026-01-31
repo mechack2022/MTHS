@@ -1,5 +1,6 @@
 package com.mths.prescription.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mths.prescription.dto.CreatePrescriptionRequest;
 import com.mths.prescription.dto.DispenseMedicationRequest;
 import com.mths.prescription.dto.PrescriptionResponse;
@@ -20,13 +21,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Validator;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
+import jakarta.validation.ConstraintViolation;
 
 /**
  * REST Controller for managing prescriptions
@@ -36,10 +41,13 @@ import java.util.List;
 @RequestMapping("/api/v1/prescriptions")
 @Slf4j
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Prescription Management", description = "APIs for managing prescriptions and pharmacy workflow")
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
     /**
      * Create a new prescription with document upload
@@ -49,8 +57,21 @@ public class PrescriptionController {
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Create prescription", description = "Create a new prescription with document upload. Automatically sent to pharmacy.")
     public ResponseEntity<ApiResponse<PrescriptionResponse>> createPrescription(
-            @Parameter(description = "Prescription details") @Valid @RequestPart("request") CreatePrescriptionRequest request,
-            @Parameter(description = "Prescription document (PDF or PNG)") @RequestPart("document") MultipartFile document) {
+            @Parameter(description = "Prescription details") @RequestPart(value = "request") String requestJson,
+            @Parameter(description = "Prescription document (PDF or PNG)") @RequestPart("document") MultipartFile document) throws Exception {
+
+        // Parse JSON string to CreatePrescriptionRequest object
+        CreatePrescriptionRequest request = objectMapper.readValue(requestJson, CreatePrescriptionRequest.class);
+
+        // Validate the request
+        Set<ConstraintViolation<CreatePrescriptionRequest>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder();
+            for (ConstraintViolation<CreatePrescriptionRequest> violation : violations) {
+                errorMessage.append(violation.getMessage()).append("; ");
+            }
+            throw new IllegalArgumentException(errorMessage.toString());
+        }
 
         log.info("Creating prescription for patient: {}, doctor: {}, pharmacy: {}",
                 request.getPatientProfileId(), request.getDoctorProfileId(), request.getPharmacyId());
@@ -116,7 +137,7 @@ public class PrescriptionController {
     @Operation(summary = "Update prescription document", description = "Update the prescription document (PDF or PNG)")
     public ResponseEntity<ApiResponse<PrescriptionResponse>> updatePrescriptionDocument(
             @Parameter(description = "Prescription ID") @PathVariable Long prescriptionId,
-            @Parameter(description = "New prescription document") @RequestPart("document") MultipartFile document) {
+            @Parameter(description = "New prescription document") @RequestPart(value = "document") MultipartFile document) {
 
         log.info("Updating prescription document for prescription: {}", prescriptionId);
 
@@ -375,7 +396,7 @@ public class PrescriptionController {
     @Operation(summary = "Create refill prescription", description = "Create a refill for an existing prescription")
     public ResponseEntity<ApiResponse<PrescriptionResponse>> createRefill(
             @Parameter(description = "Original prescription ID") @PathVariable Long prescriptionId,
-            @Parameter(description = "New prescription document") @RequestPart("document") MultipartFile document) {
+            @Parameter(description = "New prescription document") @RequestPart(value = "document") MultipartFile document) {
 
         log.info("Creating refill for prescription: {}", prescriptionId);
 
