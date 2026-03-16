@@ -20,12 +20,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         // Chat WebSocket endpoint
         registry.addHandler(chatWebSocketHandler, "/ws/chat")
-                .setAllowedOrigins("*") // Configure based on your frontend origins
+                .setAllowedOriginPatterns("*") // Allow all origins for development
                 .withSockJS();
 
         // Video consultation signaling WebSocket endpoint
         registry.addHandler(videoConsultationWebSocketHandler, "/ws/video-consultation")
-                .setAllowedOrigins("*") // Configure based on your frontend origins
+                .setAllowedOriginPatterns("*") // Allow all origins for development
                 .withSockJS();
     }
 }

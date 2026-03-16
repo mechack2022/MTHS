@@ -67,6 +67,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/webhooks/**").permitAll()
 
+                        // WebSocket endpoints (no authentication required for connection)
+                        .requestMatchers("/ws/**").permitAll()
+
                         // Permit other existing endpoints
                         .requestMatchers("/users/verify").permitAll()
                         .requestMatchers("/public/**").permitAll()
@@ -86,24 +89,26 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Frontend origins - Update these based on your actual frontend URLs
-        configuration.setAllowedOriginPatterns(Arrays.asList(
+        configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",      // React development server
-            "http://localhost:5173",      // Vite development server  
+            "http://localhost:5173",      // Vite development server
             "http://localhost:8080",      // Vue.js development server
             "http://localhost:4200",      // Angular development server
-            "https://your-frontend-domain.com",  // Production frontend domain
+            "http://localhost:8081",      // Backend server (for testing)
+            "null"                         // For local file:// access during testing
+        ));
+        configuration.setAllowedOriginPatterns(Arrays.asList(
             "https://*.netlify.app",      // Netlify deployments
             "https://*.vercel.app",       // Vercel deployments
-            "https://*.herokuapp.com"   // Heroku deployments
-                // Allow all origins (remove in production)
+            "https://*.herokuapp.com"     // Heroku deployments
         ));
         // HTTP methods that frontend can use
         configuration.setAllowedMethods(Arrays.asList(
             "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
         ));
         configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
+            "Authorization",
+            "Content-Type",
             "X-Requested-With",
             "Accept",
             "Origin",
@@ -113,7 +118,7 @@ public class SecurityConfig {
             "X-API-Key",
             "Cache-Control"
         ));
-        
+
         // Headers that frontend can read from response
         configuration.setExposedHeaders(Arrays.asList(
             "Authorization",
@@ -123,7 +128,7 @@ public class SecurityConfig {
             "X-Page-Size",
             "X-Total-Pages"
         ));
-        
+
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L); // Cache preflight response for 1 hour
 

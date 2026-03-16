@@ -27,7 +27,7 @@ public class VideoConsultationController {
     // ========================================================================
 
     @PostMapping("/appointments/{appointmentId}/start")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
     public ResponseEntity<ApiResponse<VideoConsultationDTO>> startVideoConsultation(
             @PathVariable Long appointmentId,
             @Valid @RequestBody StartConsultationRequest request) {
