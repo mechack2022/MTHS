@@ -1,6 +1,7 @@
 package com.mths.shared.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mths.consultation.service.VideoConsultationCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VideoConsultationWebSocketHandler implements WebSocketHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final VideoConsultationCacheService cacheService;
     
     // Store active sessions: userId -> WebSocketSession
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
@@ -41,6 +43,10 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
             consultationParticipants.computeIfAbsent(consultationId, k -> new ConcurrentHashMap<>())
                     .put(userId, session);
             
+            // Record participant join in Redis
+            cacheService.recordParticipantJoin(consultationId, Long.parseLong(userId),
+                extractUserType(userId, consultationId));
+
             // Notify other participants about new participant
             broadcastToConsultation(consultationId, Map.of(
                 "type", "PARTICIPANT_JOINED",
@@ -48,10 +54,10 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
                 "consultationId", consultationId,
                 "timestamp", System.currentTimeMillis()
             ), userId);
-            
+
             // Send welcome message with current participants
             sendParticipantsList(session, consultationId);
-            
+
             log.info("User {} joined video consultation {} via WebSocket", userId, consultationId);
         }
     }
@@ -94,6 +100,9 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
                 case "PING":
                     handlePing(session);
                     break;
+                case "CHAT_MESSAGE":
+                    handleChatMessage(userId, consultationId, messageData);
+                    break;
                 default:
                     log.warn("Unknown WebRTC message type: {}", messageType);
             }
@@ -127,6 +136,10 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
                     }
                 }
                 
+                // Record participant leave in Redis
+                cacheService.recordParticipantLeave(consultationId, Long.parseLong(userId),
+                    extractUserType(userId, consultationId));
+
                 // Notify other participants that user left
                 broadcastToConsultation(consultationId, Map.of(
                     "type", "PARTICIPANT_LEFT",
@@ -136,7 +149,7 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
                 ), null);
             }
         }
-        
+
         log.info("Video consultation WebSocket connection closed: {} with status: {}", session.getId(), closeStatus);
     }
 
@@ -197,42 +210,57 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
     private void handleMediaStateChange(String userId, String consultationId, Map<String, Object> messageData) {
         Boolean videoEnabled = (Boolean) messageData.get("videoEnabled");
         Boolean audioEnabled = (Boolean) messageData.get("audioEnabled");
-        
+
+        boolean video = videoEnabled != null ? videoEnabled : true;
+        boolean audio = audioEnabled != null ? audioEnabled : true;
+
+        // Record media state change in Redis
+        cacheService.recordMediaStateChange(consultationId, Long.parseLong(userId),
+            extractUserType(userId, consultationId), video, audio);
+
         Map<String, Object> stateMessage = Map.of(
             "type", "MEDIA_STATE_CHANGED",
             "userId", userId,
-            "videoEnabled", videoEnabled != null ? videoEnabled : true,
-            "audioEnabled", audioEnabled != null ? audioEnabled : true,
+            "videoEnabled", video,
+            "audioEnabled", audio,
             "timestamp", System.currentTimeMillis()
         );
-        
+
         broadcastToConsultation(consultationId, stateMessage, userId);
-        log.debug("Media state changed for user {} in consultation {}: video={}, audio={}", 
-                 userId, consultationId, videoEnabled, audioEnabled);
+        log.debug("Media state changed for user {} in consultation {}: video={}, audio={}",
+                 userId, consultationId, video, audio);
     }
 
     // Handle screen sharing start
     private void handleScreenShareStart(String userId, String consultationId, Map<String, Object> messageData) {
+        // Record screen share in Redis
+        cacheService.recordScreenShare(consultationId, Long.parseLong(userId),
+            extractUserType(userId, consultationId), "STARTED");
+
         Map<String, Object> shareMessage = Map.of(
             "type", "SCREEN_SHARE_STARTED",
             "userId", userId,
             "consultationId", consultationId,
             "timestamp", System.currentTimeMillis()
         );
-        
+
         broadcastToConsultation(consultationId, shareMessage, userId);
         log.info("Screen sharing started by user {} in consultation {}", userId, consultationId);
     }
 
     // Handle screen sharing stop
     private void handleScreenShareStop(String userId, String consultationId, Map<String, Object> messageData) {
+        // Record screen share in Redis
+        cacheService.recordScreenShare(consultationId, Long.parseLong(userId),
+            extractUserType(userId, consultationId), "STOPPED");
+
         Map<String, Object> shareMessage = Map.of(
             "type", "SCREEN_SHARE_STOPPED",
             "userId", userId,
             "consultationId", consultationId,
             "timestamp", System.currentTimeMillis()
         );
-        
+
         broadcastToConsultation(consultationId, shareMessage, userId);
         log.info("Screen sharing stopped by user {} in consultation {}", userId, consultationId);
     }
@@ -277,6 +305,27 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
         } catch (Exception e) {
             log.error("Error handling ping", e);
         }
+    }
+
+    // Handle chat messages
+    private void handleChatMessage(String senderId, String consultationId, Map<String, Object> messageData) {
+        String messageText = (String) messageData.get("message");
+        Object timestamp = messageData.get("timestamp");
+
+        // Record chat message in Redis
+        cacheService.recordChatMessage(consultationId, Long.parseLong(senderId),
+            extractUserType(senderId, consultationId), messageText, "TEXT");
+
+        Map<String, Object> chatMessage = Map.of(
+            "type", "CHAT_MESSAGE",
+            "senderId", senderId,
+            "message", messageText,
+            "timestamp", timestamp != null ? timestamp : System.currentTimeMillis()
+        );
+
+        // Broadcast to all participants in consultation (excluding sender)
+        broadcastToConsultation(consultationId, chatMessage, senderId);
+        log.debug("Chat message from user {} in consultation {}: {}", senderId, consultationId, messageText);
     }
 
     // Send participants list to a session
@@ -387,5 +436,22 @@ public class VideoConsultationWebSocketHandler implements WebSocketHandler {
     public boolean isUserConnected(String consultationId, String userId) {
         Map<String, WebSocketSession> participants = consultationParticipants.get(consultationId);
         return participants != null && participants.containsKey(userId);
+    }
+
+    // Helper method to extract user type from query parameters
+    private String extractUserType(String userId, String consultationId) {
+        // Try to get user type from session query parameters
+        Map<String, WebSocketSession> participants = consultationParticipants.get(consultationId);
+        if (participants != null) {
+            WebSocketSession session = participants.get(userId);
+            if (session != null) {
+                String query = session.getUri().getQuery();
+                if (query != null && query.contains("userType=")) {
+                    return query.split("userType=")[1].split("&")[0];
+                }
+            }
+        }
+        // Default fallback
+        return "UNKNOWN";
     }
 }

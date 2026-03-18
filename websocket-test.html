@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Consultation WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #28a745;
+        }
+        .danger {
+            background: #dc3545;
+        }
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        #messages {
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .message {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            border-left: 3px solid #007bff;
+            background: white;
+        }
+        .message.sent {
+            border-left-color: #28a745;
+        }
+        .message.received {
+            border-left-color: #17a2b8;
+        }
+        .message.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        .timestamp {
+            font-size: 11px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Video Consultation WebSocket Tester</h1>
+
+        <div class="input-group">
+            <label>User ID:</label>
+            <input type="number" id="userId" value="7" placeholder="Enter user ID">
+        </div>
+
+        <div class="input-group">
+            <label>Session ID:</label>
+            <input type="text" id="sessionId" value="session_012e56bd82594c0f8a0260580779b239" placeholder="Enter session ID">
+        </div>
+
+        <div class="input-group">
+            <label>User Type:</label>
+            <select id="userType">
+                <option value="PATIENT">PATIENT</option>
+                <option value="DOCTOR">DOCTOR</option>
+            </select>
+        </div>
+
+        <div>
+            <button onclick="connect()" id="connectBtn">Connect WebSocket</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled class="danger">Disconnect</button>
+        </div>
+
+        <div id="status" class="disconnected">
+            ⚪ Disconnected
+        </div>
+
+        <h3>Messages</h3>
+        <div id="messages"></div>
+
+        <h3>Test Actions</h3>
+        <div>
+            <input type="text" id="chatMessage" placeholder="Type a chat message" style="width: 70%; display: inline-block;">
+            <button onclick="sendChatMessage()" id="sendChatBtn" disabled>Send Chat</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button onclick="toggleVideo()" id="videoBtn" disabled>Toggle Video</button>
+            <button onclick="toggleAudio()" id="audioBtn" disabled>Toggle Audio</button>
+            <button onclick="startScreenShare()" id="screenBtn" disabled>Start Screen Share</button>
+            <button onclick="sendPing()" id="pingBtn" disabled>Send Ping</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let videoEnabled = true;
+        let audioEnabled = true;
+
+        function addMessage(text, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div>${text}</div>
+                <div class="timestamp">${timestamp}</div>
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const buttons = ['connectBtn', 'disconnectBtn', 'sendChatBtn', 'videoBtn', 'audioBtn', 'screenBtn', 'pingBtn'];
+
+            if (connected) {
+                statusDiv.textContent = '🟢 Connected';
+                statusDiv.className = 'connected';
+                document.getElementById('connectBtn').disabled = true;
+                buttons.slice(1).forEach(id => document.getElementById(id).disabled = false);
+            } else {
+                statusDiv.textContent = '🔴 Disconnected';
+                statusDiv.className = 'disconnected';
+                document.getElementById('connectBtn').disabled = false;
+                buttons.slice(1).forEach(id => document.getElementById(id).disabled = true);
+            }
+        }
+
+        function connect() {
+            const userId = document.getElementById('userId').value;
+            const sessionId = document.getElementById('sessionId').value;
+            const userType = document.getElementById('userType').value;
+
+            if (!userId || !sessionId) {
+                alert('Please fill in User ID and Session ID');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:8081/ws/video-consultation?userId=${userId}&consultationId=${sessionId}&userType=${userType}`;
+
+            addMessage(`Connecting to: ${wsUrl}`, 'info');
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                addMessage('✅ WebSocket connection established!', 'received');
+                updateStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage(`📨 Received: ${JSON.stringify(data, null, 2)}`, 'received');
+                } catch (e) {
+                    addMessage(`📨 Received: ${event.data}`, 'received');
+                }
+            };
+
+            ws.onerror = (error) => {
+                addMessage(`❌ WebSocket Error: ${error}`, 'error');
+            };
+
+            ws.onclose = (event) => {
+                addMessage(`🔌 Connection closed (Code: ${event.code}, Reason: ${event.reason || 'None'})`, 'error');
+                updateStatus(false);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                addMessage('Disconnected by user', 'info');
+            }
+        }
+
+        function sendChatMessage() {
+            const message = document.getElementById('chatMessage').value;
+            if (!message) {
+                alert('Please type a message');
+                return;
+            }
+
+            const payload = {
+                type: 'CHAT_MESSAGE',
+                message: message,
+                timestamp: Date.now()
+            };
+
+            ws.send(JSON.stringify(payload));
+            addMessage(`💬 Sent chat: "${message}"`, 'sent');
+            document.getElementById('chatMessage').value = '';
+        }
+
+        function toggleVideo() {
+            videoEnabled = !videoEnabled;
+            const payload = {
+                type: 'MEDIA_STATE_CHANGE',
+                videoEnabled: videoEnabled,
+                audioEnabled: audioEnabled
+            };
+            ws.send(JSON.stringify(payload));
+            addMessage(`🎥 Video ${videoEnabled ? 'ON' : 'OFF'}`, 'sent');
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const payload = {
+                type: 'MEDIA_STATE_CHANGE',
+                videoEnabled: videoEnabled,
+                audioEnabled: audioEnabled
+            };
+            ws.send(JSON.stringify(payload));
+            addMessage(`🎤 Audio ${audioEnabled ? 'ON' : 'OFF'}`, 'sent');
+        }
+
+        function startScreenShare() {
+            const payload = {
+                type: 'SCREEN_SHARE_START'
+            };
+            ws.send(JSON.stringify(payload));
+            addMessage('🖥️ Screen share started', 'sent');
+        }
+
+        function sendPing() {
+            const payload = {
+                type: 'PING'
+            };
+            ws.send(JSON.stringify(payload));
+            addMessage('🏓 Ping sent', 'sent');
+        }
+
+        // Allow Enter key to send chat
+        document.getElementById('chatMessage').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !document.getElementById('sendChatBtn').disabled) {
+                sendChatMessage();
+            }
+        });
+    </script>
+</body>
+</html>

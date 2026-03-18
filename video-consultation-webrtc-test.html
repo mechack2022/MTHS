@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Consultation - Full WebRTC Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .status-badge.connected {
+            background: #10b981;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 0;
+            height: calc(100vh - 100px);
+        }
+
+        .video-area {
+            background: #1a1a1a;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .videos-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .video-placeholder {
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .controls-bar {
+            background: #2d2d2d;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+            background: #4a5568;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: #ef4444;
+        }
+
+        .control-btn.end-call {
+            background: #ef4444;
+            width: 60px;
+            height: 60px;
+        }
+
+        .sidebar {
+            background: #f7fafc;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #e2e8f0;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .participants-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .participant {
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .participant-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .participant-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .participant-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .participant-status.offline {
+            background: #6b7280;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            max-height: 300px;
+            background: white;
+        }
+
+        .message {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 3px solid #667eea;
+            background: #f7fafc;
+        }
+
+        .message.received {
+            border-left-color: #10b981;
+        }
+
+        .message.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .message-time {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            max-width: 80%;
+        }
+
+        .chat-message.sent {
+            margin-left: auto;
+        }
+
+        .chat-message-header {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .chat-message-bubble {
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .chat-message.sent .chat-message-bubble {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.received .chat-message-bubble {
+            background: #e2e8f0;
+            color: #1a202c;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 20px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .chat-input-area input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .chat-send-btn:hover {
+            background: #5568d3;
+            transform: scale(1.1);
+        }
+
+        .chat-send-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 3px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Video Consultation - WebRTC Test</h1>
+            <div class="status-badge" id="connectionStatus">Disconnected</div>
+        </div>
+
+        <div class="main-content">
+            <!-- Video Area -->
+            <div class="video-area">
+                <div class="videos-grid">
+                    <!-- Local Video -->
+                    <div class="video-container">
+                        <video id="localVideo" autoplay muted playsinline></video>
+                        <div class="video-label">You (Local)</div>
+                    </div>
+
+                    <!-- Remote Video -->
+                    <div class="video-container">
+                        <video id="remoteVideo" autoplay playsinline></video>
+                        <div class="video-label">Remote User</div>
+                        <div class="video-placeholder" id="remotePlaceholder">
+                            Waiting for remote user...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-bar">
+                    <button class="control-btn" id="toggleAudio" title="Mute/Unmute Audio">
+                        🎤
+                    </button>
+                    <button class="control-btn" id="toggleVideo" title="Turn Camera On/Off">
+                        📹
+                    </button>
+                    <button class="control-btn" id="shareScreen" title="Share Screen">
+                        🖥️
+                    </button>
+                    <button class="control-btn end-call" id="endCall" title="End Call" disabled>
+                        📞
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Connection Settings -->
+                <div class="sidebar-section">
+                    <h3>Connection Settings</h3>
+                    <div class="form-group">
+                        <label>User ID</label>
+                        <input type="number" id="userId" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Consultation ID</label>
+                        <input type="number" id="consultationId" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select id="userType">
+                            <option value="PATIENT">Patient</option>
+                            <option value="DOCTOR">Doctor</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" id="startCall">Start Video Call</button>
+                    <button class="btn btn-danger" id="leaveCall" disabled>Leave Call</button>
+                </div>
+
+                <!-- Participants -->
+                <div class="sidebar-section">
+                    <h3>Participants (<span id="participantCount">0</span>)</h3>
+                    <div class="participants-list" id="participantsList">
+                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                            No participants yet
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Stats -->
+                <div class="sidebar-section">
+                    <h3>Connection Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statBitrate">0</div>
+                            <div class="stat-label">Bitrate (kbps)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statLatency">0</div>
+                            <div class="stat-label">Latency (ms)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statPacketLoss">0</div>
+                            <div class="stat-label">Packet Loss %</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statQuality">Good</div>
+                            <div class="stat-label">Quality</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat -->
+                <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <h3>💬 Chat</h3>
+                    <div class="messages-area" id="chatArea" style="overflow-y: auto;"></div>
+                    <div class="chat-input-area">
+                        <input
+                            type="text"
+                            id="chatInput"
+                            placeholder="Type a message..."
+                            disabled
+                        />
+                        <button class="chat-send-btn" id="chatSendBtn" disabled>
+                            ➤
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let ws = null;
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let isAudioEnabled = true;
+        let isVideoEnabled = true;
+        let isScreenSharing = false;
+        let myUserId = null;
+        let myConsultationId = null;
+        let participants = new Map();
+
+        // ICE servers configuration
+        const iceServers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        };
+
+        // DOM elements
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const remotePlaceholder = document.getElementById('remotePlaceholder');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const startCallBtn = document.getElementById('startCall');
+        const leaveCallBtn = document.getElementById('leaveCall');
+        const endCallBtn = document.getElementById('endCall');
+        const toggleAudioBtn = document.getElementById('toggleAudio');
+        const toggleVideoBtn = document.getElementById('toggleVideo');
+        const shareScreenBtn = document.getElementById('shareScreen');
+        const chatArea = document.getElementById('chatArea');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const participantsList = document.getElementById('participantsList');
+        const participantCount = document.getElementById('participantCount');
+
+        // Start video call
+        startCallBtn.addEventListener('click', async () => {
+            try {
+                myUserId = document.getElementById('userId').value;
+                myConsultationId = document.getElementById('consultationId').value;
+                const userType = document.getElementById('userType').value;
+
+                addMessage('Requesting camera and microphone access...', 'info');
+
+                // Get local media stream
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                localVideo.srcObject = localStream;
+                addMessage('Camera and microphone accessed successfully!', 'success');
+
+                // Connect to WebSocket
+                connectWebSocket(myUserId, myConsultationId);
+
+                startCallBtn.disabled = true;
+                leaveCallBtn.disabled = false;
+                endCallBtn.disabled = false;
+                chatInput.disabled = false;
+                chatSendBtn.disabled = false;
+
+            } catch (error) {
+                addChatMessage('system', `Error accessing media devices: ${error.message}`, 'error');
+                console.error('Error accessing media:', error);
+            }
+        });
+
+        // Connect to WebSocket
+        function connectWebSocket(userId, consultationId) {
+            const wsUrl = `ws://localhost:8081/ws/video-consultation/websocket?userId=${userId}&consultationId=${consultationId}`;
+
+            addMessage(`Connecting to signaling server...`, 'info');
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.classList.add('connected');
+                addChatMessage('system', 'Connected! You can now chat.', 'success');
+
+                // Send participant ready signal
+                sendMessage({ type: 'PARTICIPANT_READY' });
+            };
+
+            ws.onmessage = async (event) => {
+                const message = JSON.parse(event.data);
+                console.log('Received message:', message);
+
+                await handleWebSocketMessage(message);
+            };
+
+            ws.onerror = (error) => {
+                addMessage('WebSocket error occurred', 'error');
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.classList.remove('connected');
+                addMessage('Disconnected from signaling server', 'info');
+            };
+        }
+
+        // Handle WebSocket messages
+        async function handleWebSocketMessage(message) {
+            switch (message.type) {
+                case 'PARTICIPANTS_LIST':
+                    updateParticipantsList(message.participants);
+                    addMessage(`Current participants: ${message.participants.length}`, 'info');
+                    break;
+
+                case 'PARTICIPANT_JOINED':
+                    addMessage(`User ${message.userId} joined the consultation`, 'success');
+                    updateParticipantsList([message.userId]);
+                    // If we're already in call, initiate connection with new user
+                    if (peerConnection === null && message.userId !== myUserId) {
+                        await createPeerConnection(message.userId);
+                        await createAndSendOffer(message.userId);
+                    }
+                    break;
+
+                case 'PARTICIPANT_LEFT':
+                    addMessage(`User ${message.userId} left the consultation`, 'info');
+                    removeParticipant(message.userId);
+                    break;
+
+                case 'PARTICIPANT_READY':
+                    addMessage(`User ${message.userId} is ready`, 'info');
+                    // Initiate WebRTC connection if both users are ready
+                    if (message.userId !== myUserId && peerConnection === null) {
+                        await createPeerConnection(message.userId);
+                        await createAndSendOffer(message.userId);
+                    }
+                    break;
+
+                case 'WEBRTC_OFFER':
+                    await handleOffer(message.senderId, message.offer);
+                    break;
+
+                case 'WEBRTC_ANSWER':
+                    await handleAnswer(message.senderId, message.answer);
+                    break;
+
+                case 'ICE_CANDIDATE':
+                    await handleIceCandidate(message.senderId, message.candidate);
+                    break;
+
+                case 'MEDIA_STATE_CHANGED':
+                    addMessage(`User ${message.userId} ${message.videoEnabled ? 'enabled' : 'disabled'} video, ${message.audioEnabled ? 'enabled' : 'disabled'} audio`, 'info');
+                    break;
+
+                case 'SCREEN_SHARE_STARTED':
+                    addMessage(`User ${message.userId} started screen sharing`, 'info');
+                    break;
+
+                case 'SCREEN_SHARE_STOPPED':
+                    addMessage(`User ${message.userId} stopped screen sharing`, 'info');
+                    break;
+
+                case 'CONSULTATION_ENDED':
+                    addMessage('Consultation has been ended', 'info');
+                    endCall();
+                    break;
+
+                case 'PONG':
+                    // Ping response received
+                    break;
+
+                case 'CHAT_MESSAGE':
+                    addChatMessage(message.senderId, message.message, 'received');
+                    break;
+
+                default:
+                    console.log('Unknown message type:', message.type);
+            }
+        }
+
+        // Create peer connection
+        async function createPeerConnection(targetUserId) {
+            peerConnection = new RTCPeerConnection(iceServers);
+
+            // Add local tracks to peer connection
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // Handle incoming tracks
+            peerConnection.ontrack = (event) => {
+                console.log('Received remote track:', event.track.kind);
+                if (event.streams && event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                    remotePlaceholder.style.display = 'none';
+                    addMessage('Remote video stream received!', 'success');
+                }
+            };
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendMessage({
+                        type: 'ICE_CANDIDATE',
+                        targetUserId: targetUserId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+                addMessage(`Connection state: ${peerConnection.connectionState}`, 'info');
+
+                if (peerConnection.connectionState === 'connected') {
+                    startStatsMonitoring();
+                }
+            };
+
+            addMessage('Peer connection created', 'info');
+        }
+
+        // Create and send offer
+        async function createAndSendOffer(targetUserId) {
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                sendMessage({
+                    type: 'WEBRTC_OFFER',
+                    targetUserId: targetUserId,
+                    offer: offer
+                });
+
+                addMessage('Sent WebRTC offer to remote user', 'info');
+            } catch (error) {
+                addMessage(`Error creating offer: ${error.message}`, 'error');
+                console.error('Error creating offer:', error);
+            }
+        }
+
+        // Handle received offer
+        async function handleOffer(senderId, offer) {
+            try {
+                if (!peerConnection) {
+                    await createPeerConnection(senderId);
+                }
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                sendMessage({
+                    type: 'WEBRTC_ANSWER',
+                    targetUserId: senderId,
+                    answer: answer
+                });
+
+                addMessage('Received offer and sent answer', 'info');
+            } catch (error) {
+                addMessage(`Error handling offer: ${error.message}`, 'error');
+                console.error('Error handling offer:', error);
+            }
+        }
+
+        // Handle received answer
+        async function handleAnswer(senderId, answer) {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                addMessage('Received answer, connection establishing...', 'info');
+            } catch (error) {
+                addMessage(`Error handling answer: ${error.message}`, 'error');
+                console.error('Error handling answer:', error);
+            }
+        }
+
+        // Handle ICE candidate
+        async function handleIceCandidate(senderId, candidate) {
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (error) {
+                console.error('Error adding ICE candidate:', error);
+            }
+        }
+
+        // Toggle audio
+        toggleAudioBtn.addEventListener('click', () => {
+            isAudioEnabled = !isAudioEnabled;
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = isAudioEnabled;
+            });
+            toggleAudioBtn.classList.toggle('active', !isAudioEnabled);
+            toggleAudioBtn.textContent = isAudioEnabled ? '🎤' : '🔇';
+
+            sendMessage({
+                type: 'MEDIA_STATE_CHANGE',
+                videoEnabled: isVideoEnabled,
+                audioEnabled: isAudioEnabled
+            });
+
+            addMessage(`Microphone ${isAudioEnabled ? 'enabled' : 'disabled'}`, 'info');
+        });
+
+        // Toggle video
+        toggleVideoBtn.addEventListener('click', () => {
+            isVideoEnabled = !isVideoEnabled;
+            localStream.getVideoTracks().forEach(track => {
+                track.enabled = isVideoEnabled;
+            });
+            toggleVideoBtn.classList.toggle('active', !isVideoEnabled);
+            toggleVideoBtn.textContent = isVideoEnabled ? '📹' : '📷';
+
+            sendMessage({
+                type: 'MEDIA_STATE_CHANGE',
+                videoEnabled: isVideoEnabled,
+                audioEnabled: isAudioEnabled
+            });
+
+            addMessage(`Camera ${isVideoEnabled ? 'enabled' : 'disabled'}`, 'info');
+        });
+
+        // Share screen
+        shareScreenBtn.addEventListener('click', async () => {
+            if (!isScreenSharing) {
+                try {
+                    const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true
+                    });
+
+                    const screenTrack = screenStream.getVideoTracks()[0];
+                    const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+
+                    if (sender) {
+                        sender.replaceTrack(screenTrack);
+                    }
+
+                    isScreenSharing = true;
+                    shareScreenBtn.classList.add('active');
+                    shareScreenBtn.textContent = '🖥️';
+
+                    sendMessage({ type: 'SCREEN_SHARE_START' });
+                    addMessage('Screen sharing started', 'success');
+
+                    screenTrack.onended = () => {
+                        stopScreenSharing();
+                    };
+                } catch (error) {
+                    addMessage(`Error sharing screen: ${error.message}`, 'error');
+                }
+            } else {
+                stopScreenSharing();
+            }
+        });
+
+        function stopScreenSharing() {
+            const videoTrack = localStream.getVideoTracks()[0];
+            const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+
+            if (sender) {
+                sender.replaceTrack(videoTrack);
+            }
+
+            isScreenSharing = false;
+            shareScreenBtn.classList.remove('active');
+            shareScreenBtn.textContent = '🖥️';
+
+            sendMessage({ type: 'SCREEN_SHARE_STOP' });
+            addMessage('Screen sharing stopped', 'info');
+        }
+
+        // End call
+        endCallBtn.addEventListener('click', () => {
+            endCall();
+        });
+
+        leaveCallBtn.addEventListener('click', () => {
+            endCall();
+        });
+
+        function endCall() {
+            // Stop all tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Close peer connection
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // Close WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // Reset UI
+            localVideo.srcObject = null;
+            remoteVideo.srcObject = null;
+            remotePlaceholder.style.display = 'flex';
+            startCallBtn.disabled = false;
+            leaveCallBtn.disabled = true;
+            endCallBtn.disabled = true;
+            chatInput.disabled = true;
+            chatSendBtn.disabled = true;
+            chatInput.value = '';
+
+            addMessage('Call ended', 'info');
+        }
+
+        // Send WebSocket message
+        function sendMessage(message) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+            }
+        }
+
+        // Update participants list
+        function updateParticipantsList(participantIds) {
+            participantIds.forEach(id => {
+                if (!participants.has(id)) {
+                    participants.set(id, { userId: id, online: true });
+                }
+            });
+
+            renderParticipants();
+        }
+
+        function removeParticipant(userId) {
+            participants.delete(userId);
+            renderParticipants();
+        }
+
+        function renderParticipants() {
+            participantCount.textContent = participants.size;
+
+            if (participants.size === 0) {
+                participantsList.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">No participants yet</div>';
+                return;
+            }
+
+            participantsList.innerHTML = '';
+            participants.forEach((participant, userId) => {
+                const div = document.createElement('div');
+                div.className = 'participant';
+                div.innerHTML = `
+                    <div class="participant-info">
+                        <div class="participant-avatar">${userId.substring(0, 2).toUpperCase()}</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px;">User ${userId}</div>
+                            <div style="font-size: 11px; color: #6b7280;">${userId === myUserId ? 'You' : 'Remote'}</div>
+                        </div>
+                    </div>
+                    <div class="participant-status ${participant.online ? '' : 'offline'}"></div>
+                `;
+                participantsList.appendChild(div);
+            });
+        }
+
+        // Add message to log
+        function addMessage(text, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type === 'error' ? 'error' : type === 'success' ? 'received' : ''}`;
+            messageDiv.innerHTML = `
+                <div>${text}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        // Monitor connection stats
+        function startStatsMonitoring() {
+            setInterval(async () => {
+                if (peerConnection) {
+                    const stats = await peerConnection.getStats();
+                    stats.forEach(report => {
+                        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                            const bitrate = Math.round(report.bytesReceived * 8 / 1000);
+                            document.getElementById('statBitrate').textContent = bitrate;
+                        }
+                    });
+                }
+            }, 1000);
+        }
+
+        // Chat functionality
+        chatSendBtn.addEventListener('click', () => {
+            sendChatMessage();
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Send message via WebSocket
+            sendMessage({
+                type: 'CHAT_MESSAGE',
+                message: message,
+                senderId: myUserId,
+                timestamp: Date.now()
+            });
+
+            // Display sent message
+            addChatMessage('You', message, 'sent');
+
+            // Clear input
+            chatInput.value = '';
+        }
+
+        function addChatMessage(sender, text, type = 'info') {
+            const messageDiv = document.createElement('div');
+
+            if (sender === 'system') {
+                // System message
+                messageDiv.className = `message ${type === 'error' ? 'error' : type === 'success' ? 'received' : ''}`;
+                messageDiv.innerHTML = `
+                    <div>${text}</div>
+                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                `;
+            } else {
+                // Chat message
+                const isSent = type === 'sent';
+                messageDiv.className = `chat-message ${isSent ? 'sent' : 'received'}`;
+                messageDiv.innerHTML = `
+                    <div class="chat-message-header">${sender} • ${new Date().toLocaleTimeString()}</div>
+                    <div class="chat-message-bubble">${escapeHtml(text)}</div>
+                `;
+            }
+
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Legacy addMessage function for compatibility
+        function addMessage(text, type = 'info') {
+            addChatMessage('system', text, type);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            endCall();
+        });
+    </script>
+</body>
+</html>
