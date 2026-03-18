@@ -54,3 +54,31 @@ minio-data
 pgdata/
 ../pgdata/
 **/pgdata/
+
+### Redis Data ###
+# Ignore Redis data directory
+redis-data/
+../redis-data/
+**/redis-data/
+
+### Logs ###
+# Application logs
+logs/
+*.log
+*.log.*
+spring.log
+
+### Temporary Files ###
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+### Documentation (generated) ###
+# Keep markdown docs but ignore test/temp docs
+**/VIDEO_CONSULTATION_*.md
+websocket-test.html

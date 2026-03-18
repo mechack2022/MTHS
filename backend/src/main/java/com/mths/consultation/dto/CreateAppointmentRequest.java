@@ -36,37 +36,37 @@ public class CreateAppointmentRequest {
     @Positive(message = "Duration must be positive")
     private Integer durationMinutes = 30;
 
-    @Schema(description = "Patient's symptoms or reason for appointment", example = "Chest pain and shortness of breath")
-    private String symptoms;
+//    @Schema(description = "Patient's symptoms or reason for appointment", example = "Chest pain and shortness of breath")
+//    private String symptoms;
 
     @Schema(description = "Consultation fee (leave null to use default flat fee)", example = "10000.00")
     private Double consultationFee;
     
-    // Vital Signs - REQUIRED for all appointments (used for critical condition assessment)
-    @Schema(description = "Blood pressure reading (systolic/diastolic) - REQUIRED",
-            example = "120/80", required = true)
-    @NotNull(message = "Blood pressure is required for appointment booking")
-    @Pattern(regexp = "^\\d{2,3}/\\d{2,3}$", message = "Blood pressure must be in format like '120/80'")
-    private String bloodPressure;
-
-    @Schema(description = "Heart rate in beats per minute - REQUIRED", example = "72", required = true)
-    @NotNull(message = "Heart rate is required for appointment booking")
-    @Positive(message = "Heart rate must be positive")
-    private Integer heartRate;
-
-    @Schema(description = "Body temperature in Celsius - REQUIRED", example = "36.5", required = true)
-    @NotNull(message = "Body temperature is required for appointment booking")
-    @Positive(message = "Temperature must be positive")
-    private Double temperature;
-
-    @Schema(description = "Weight in kilograms", example = "70.5")
-    @Positive(message = "Weight must be positive")
-    private Double weight;
-
-    @Schema(description = "Height in centimeters", example = "175.0")
-    @Positive(message = "Height must be positive")
-    private Double height;
-
-    @Schema(description = "Additional notes about vital signs", example = "Patient appears stable")
-    private String vitalSignsNotes;
+//    // Vital Signs - REQUIRED for all appointments (used for critical condition assessment)
+//    @Schema(description = "Blood pressure reading (systolic/diastolic) - REQUIRED",
+//            example = "120/80", required = true)
+//    @NotNull(message = "Blood pressure is required for appointment booking")
+//    @Pattern(regexp = "^\\d{2,3}/\\d{2,3}$", message = "Blood pressure must be in format like '120/80'")
+//    private String bloodPressure;
+//
+//    @Schema(description = "Heart rate in beats per minute - REQUIRED", example = "72", required = true)
+//    @NotNull(message = "Heart rate is required for appointment booking")
+//    @Positive(message = "Heart rate must be positive")
+//    private Integer heartRate;
+//
+//    @Schema(description = "Body temperature in Celsius - REQUIRED", example = "36.5", required = true)
+//    @NotNull(message = "Body temperature is required for appointment booking")
+//    @Positive(message = "Temperature must be positive")
+//    private Double temperature;
+//
+//    @Schema(description = "Weight in kilograms", example = "70.5")
+//    @Positive(message = "Weight must be positive")
+//    private Double weight;
+//
+//    @Schema(description = "Height in centimeters", example = "175.0")
+//    @Positive(message = "Height must be positive")
+//    private Double height;
+//
+//    @Schema(description = "Additional notes about vital signs", example = "Patient appears stable")
+//    private String vitalSignsNotes;
 }

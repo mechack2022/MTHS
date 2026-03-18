@@ -1,6 +1,7 @@
 package com.mths.patient.entity;
 
 import com.mths.consultation.entity.Appointment;
+import com.mths.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -39,8 +40,15 @@ public class VitalSigns extends com.mths.shared.entity.BaseEntity {
     @Column(name = "recorded_at")
     private LocalDateTime recordedAt;
 
-    @Column(name = "recorded_by")
-    private String recordedBy;
+    // Who recorded these vitals (role-based)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recorded_by_role")
+    private RecorderRole recordedByRole;
+
+    // The actual user who created this record (for auditing)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recorded_by_user_id")
+    private User recordedByUser;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -51,8 +59,14 @@ public class VitalSigns extends com.mths.shared.entity.BaseEntity {
     private HealthStatus healthStatus;
 
     // Relationships
+    // Patient profile - REQUIRED (vitals always belong to a patient)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_profile_id", nullable = false)
+    private PatientProfile patientProfile;
+
+    // Appointment - OPTIONAL (vitals can be standalone or linked to appointment)
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "appointment_id")
+    @JoinColumn(name = "appointment_id", nullable = true)
     private Appointment appointment;
 
     @PrePersist
@@ -242,8 +256,56 @@ public class VitalSigns extends com.mths.shared.entity.BaseEntity {
         }
     }
 
+    public enum RecorderRole {
+        PATIENT("Patient Self-Reported"),          // Patient recorded their own vitals at home
+        DOCTOR("Doctor Recorded"),                  // Doctor recorded during consultation
+        NURSE("Nurse Recorded"),                    // Nurse recorded during triage/checkup
+        LAB_TECHNICIAN("Lab Technician Recorded"),  // Lab tech during tests
+        PHARMACIST("Pharmacist Recorded"),          // Pharmacist during consultation
+        CAREGIVER("Caregiver Recorded"),           // Family member or caregiver
+        SYSTEM("System Generated");                 // Automated/device reading
+
+        private final String description;
+
+        RecorderRole(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
     // Helper method for appointment ID (delegate to relationship)
     public Long getAppointmentId() {
         return appointment != null ? appointment.getId() : null;
+    }
+
+    // Helper method for patient profile ID
+    public Long getPatientProfileId() {
+        return patientProfile != null ? patientProfile.getId() : null;
+    }
+
+    // Check if this is a standalone vital sign (not linked to appointment)
+    public boolean isStandalone() {
+        return appointment == null;
+    }
+
+    // Check if this is linked to an appointment
+    public boolean isAppointmentLinked() {
+        return appointment != null;
+    }
+
+    // Helper method for recorded by user ID
+    public Long getRecordedByUserId() {
+        return recordedByUser != null ? recordedByUser.getId() : null;
+    }
+
+    // Helper method to get recorder name
+    public String getRecordedByName() {
+        if (recordedByUser != null) {
+            return recordedByUser.getFirstName() + " " + recordedByUser.getLastName();
+        }
+        return "Unknown";
     }
 }

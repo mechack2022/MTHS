@@ -43,6 +43,7 @@ public class VideoConsultationServiceImpl implements VideoConsultationService {
     private final DoctorProfileRepository doctorProfileRepository;
     private final VideoConsultationMapper videoConsultationMapper;
     private final VideoConsultationWebSocketHandler webSocketHandler;
+    private final VideoConsultationCacheService cacheService;
 
     @Override
     public VideoConsultationDTO createVideoConsultation(CreateVideoConsultationRequest request) {
@@ -67,7 +68,11 @@ public class VideoConsultationServiceImpl implements VideoConsultationService {
 
         VideoConsultation saved = videoConsultationRepository.save(consultation);
         log.info("Video consultation created with session ID: {}", saved.getSessionId());
-        
+
+        // Initialize Redis session for real-time tracking
+        cacheService.initializeSession(saved);
+        log.info("Redis session initialized for consultation: {}", saved.getId());
+
         return videoConsultationMapper.toDTO(saved);
     }
 
@@ -196,7 +201,14 @@ public class VideoConsultationServiceImpl implements VideoConsultationService {
             .orElseThrow(() -> new ResourceNotFoundException("VideoConsultation", "id", consultationId));
 
         updateVideoConsultationStatus(consultationId, "COMPLETED");
-        
+
+        // Mark Redis session as completed
+        cacheService.completeSession(consultation.getSessionId());
+
+        // Flush session data from Redis to PostgreSQL
+        cacheService.flushSessionToDatabase(consultation.getSessionId());
+        log.info("Session data flushed to PostgreSQL for consultation: {}", consultationId);
+
         // Notify all participants that consultation has ended
         webSocketHandler.notifyConsultationUpdate(
             consultation.getSessionId(),

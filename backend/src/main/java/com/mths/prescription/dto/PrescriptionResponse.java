@@ -6,8 +6,6 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Response DTO for prescription
@@ -97,8 +95,23 @@ public class PrescriptionResponse {
     @Schema(description = "Previous prescription ID (if this is a refill)", example = "555")
     private Long previousPrescriptionId;
 
-    @Schema(description = "List of medications in prescription")
-    private List<PrescriptionItemResponse> medications = new ArrayList<>();
+    @Schema(description = "Prescription document file path (MinIO object key)")
+    private String prescriptionDocumentPath;
+
+    @Schema(description = "Original prescription document filename", example = "prescription_patient123.pdf")
+    private String prescriptionDocumentName;
+
+    @Schema(description = "Prescription document MIME type", example = "application/pdf")
+    private String prescriptionDocumentType;
+
+    @Schema(description = "Prescription document size in bytes", example = "524288")
+    private Long prescriptionDocumentSize;
+
+    @Schema(description = "Prescription document upload timestamp")
+    private LocalDateTime prescriptionDocumentUploadedAt;
+
+    @Schema(description = "Has prescription document been uploaded?", example = "true")
+    private Boolean hasDocument;
 
     @Schema(description = "Is prescription expired?", example = "false")
     private Boolean isExpired;

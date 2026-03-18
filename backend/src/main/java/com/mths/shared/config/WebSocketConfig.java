@@ -18,14 +18,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Chat WebSocket endpoint
+        // Chat WebSocket endpoint - with SockJS fallback
         registry.addHandler(chatWebSocketHandler, "/ws/chat")
-                .setAllowedOrigins("*") // Configure based on your frontend origins
+                .setAllowedOriginPatterns("*") // Allow all origins for development
                 .withSockJS();
 
         // Video consultation signaling WebSocket endpoint
+        // Native WebSocket (no SockJS) for better performance with video
         registry.addHandler(videoConsultationWebSocketHandler, "/ws/video-consultation")
-                .setAllowedOrigins("*") // Configure based on your frontend origins
-                .withSockJS();
+                .setAllowedOriginPatterns("*") // Allow all origins for development
+                .setAllowedOrigins("*"); // Also allow all origins for native WebSocket
     }
 }

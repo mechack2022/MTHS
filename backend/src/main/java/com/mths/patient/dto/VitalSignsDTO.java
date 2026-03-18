@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
 @Data
 public class VitalSignsDTO {
     private Long id;
-    private Long appointmentId;
+    private Long patientProfileId;  // Always present
+    private Long appointmentId;      // Optional (null for standalone vitals)
     private String bloodPressure;
     private Integer heartRate;
     private Double temperature;
@@ -16,7 +17,12 @@ public class VitalSignsDTO {
     private Double height;
     private Double bmi;
     private LocalDateTime recordedAt;
-    private String recordedBy;
+
+    // Who recorded these vitals
+    private VitalSigns.RecorderRole recordedByRole;  // PATIENT, DOCTOR, NURSE, etc.
+    private String recordedByUserId;                  // ID of user who created it
+    private String recordedByName;                    // Name of user who created it
+
     private String notes;
     private VitalSigns.HealthStatus healthStatus;
     

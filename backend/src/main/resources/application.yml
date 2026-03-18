@@ -43,6 +43,21 @@ spring:
           starttls:
             enable: false
         debug: ${MAIL_DEBUG:false}
+  # Redis Configuration for Video Consultation Caching
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:60000}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+      repositories:
+        enabled: true
 
 server:
   port: ${SERVER_PORT:8081}

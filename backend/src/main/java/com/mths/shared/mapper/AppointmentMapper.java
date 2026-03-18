@@ -56,12 +56,6 @@ public class AppointmentMapper {
             dto.setVitalSigns(mapToVitalSignsDTO(vitalSigns));
         }
 
-        // TODO: Add patient and doctor name mapping
-        // This would require loading patient and doctor profiles
-        // dto.setPatientName(getPatientName(appointment.getPatientProfileId()));
-        // dto.setDoctorName(getDoctorName(appointment.getDoctorProfileId()));
-        // dto.setDoctorSpecialization(getDoctorSpecialization(appointment.getDoctorProfileId()));
-
         return dto;
     }
 
@@ -72,6 +66,7 @@ public class AppointmentMapper {
 
         VitalSignsDTO dto = new VitalSignsDTO();
         dto.setId(vitalSigns.getId());
+        dto.setPatientProfileId(vitalSigns.getPatientProfileId());
         dto.setAppointmentId(vitalSigns.getAppointmentId());
         dto.setBloodPressure(vitalSigns.getBloodPressure());
         dto.setHeartRate(vitalSigns.getHeartRate());
@@ -80,7 +75,13 @@ public class AppointmentMapper {
         dto.setHeight(vitalSigns.getHeight());
         dto.setBmi(vitalSigns.getBmi());
         dto.setRecordedAt(vitalSigns.getRecordedAt());
-        dto.setRecordedBy(vitalSigns.getRecordedBy());
+
+        // Set recorder information
+        dto.setRecordedByRole(vitalSigns.getRecordedByRole());
+        Long userId = vitalSigns.getRecordedByUserId();
+        dto.setRecordedByUserId(userId != null ? userId.toString() : null);
+        dto.setRecordedByName(vitalSigns.getRecordedByName());
+
         dto.setNotes(vitalSigns.getNotes());
         dto.setHealthStatus(vitalSigns.getHealthStatus());
 
@@ -140,22 +141,30 @@ public class AppointmentMapper {
 
         VitalSigns vitalSigns = new VitalSigns();
         // ID is auto-generated, don't set it manually
-        
-        // Set appointment relationship if ID is provided
+
+        // Set patient profile relationship (REQUIRED)
+        if (dto.getPatientProfileId() != null) {
+            PatientProfile patientProfile = patientProfileRepository.findById(dto.getPatientProfileId())
+                    .orElseThrow(() -> new ResourceNotFoundException("PatientProfile", "id", dto.getPatientProfileId()));
+            vitalSigns.setPatientProfile(patientProfile);
+        }
+
+        // Set appointment relationship if ID is provided (OPTIONAL)
         if (dto.getAppointmentId() != null) {
             Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", dto.getAppointmentId()));
             vitalSigns.setAppointment(appointment);
         }
-        
+
         vitalSigns.setBloodPressure(dto.getBloodPressure());
         vitalSigns.setHeartRate(dto.getHeartRate());
         vitalSigns.setTemperature(dto.getTemperature());
         vitalSigns.setWeight(dto.getWeight());
         vitalSigns.setHeight(dto.getHeight());
         vitalSigns.setRecordedAt(dto.getRecordedAt());
-        vitalSigns.setRecordedBy(dto.getRecordedBy());
         vitalSigns.setNotes(dto.getNotes());
+
+        // Note: recordedByRole and recordedByUser are set by the service layer from authentication
 
         return vitalSigns;
     }

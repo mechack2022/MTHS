@@ -209,6 +209,21 @@
 			<version>2.6.0</version>
 		</dependency>
 
+		<!-- Redis Dependencies for Real-time Caching -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+		</dependency>
+		<!-- Jackson for JSON serialization in Redis -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
