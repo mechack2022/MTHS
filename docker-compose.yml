@@ -140,6 +140,37 @@ services:
       /usr/bin/mc policy set private healthcare/prescriptions;
       echo 'Healthcare buckets created and configured successfully!';
       "
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    container_name: healthcare_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - local
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    container_name: redis_ui
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    networks:
+      - local
+    depends_on:
+      - redis
+
 networks:
   local:
     driver: bridge
